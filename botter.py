@@ -183,4 +183,10 @@ async def nuh(ctx):
 async def ip(ctx):
   ctx.send("192.168.69.69")
 
+@bot.command(help="print current directory lena is in")
+async def pwd(ctx):
+  with open("cwd", "r") as f:
+    cwd = f.read()
+  ctx.send(sprintf("lena is in %", cwd))
+
 bot.run(token)
