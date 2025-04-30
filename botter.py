@@ -68,6 +68,7 @@ async def mute_me(ctx):
   with open("stupid.json", "w") as f:
     json.dump(idiots, f)
   await ctx.author.timeout_for(timedelta(hours=1), reason="self inflicted")
+  await ctx.reply("congrats, you timed yourself out for an hour, dumbass")
 
 @bot.command(help="shows how many times uve muted urrself")
 async def stupid(ctx):
@@ -75,9 +76,9 @@ async def stupid(ctx):
   with open("stupid.json", "r") as f:
     idiots = json.load(f);
   if id in idiots:
-    await ctx.send(sprintf("uve muted urself for % hours total, idiot", idiots[id]))
+    await ctx.reply(sprintf("uve muted urself for % hours total, idiot", idiots[id]))
   else:
-    await ctx.send("u havent muted urself, good job")
+    await ctx.reply("u havent muted urself, good job")
 
 @bot.command(help="makes the bot say things")
 async def echo(ctx, *vaargs):
@@ -89,26 +90,26 @@ async def echo(ctx, *vaargs):
 @bot.command(help="murders botter")
 async def kys(ctx):
   if ctx.author.id != 808122595898556457:
-    await ctx.send("nuh uh")
+    await ctx.reply("nuh uh")
     return
-  await ctx.send("k bye")
+  await ctx.reply("k bye")
   exit(0)
   
 @bot.command(help="returns your id")
 async def id(ctx):
-  await ctx.send(ctx.author.id)
+  await ctx.reply(ctx.author.id)
   
 @bot.command(help="shows the bots latency")
 async def ping(ctx):
-  await ctx.send(sprintf("this took %ms to send", round(bot.latency * 1000, 1)))
+  await ctx.reply(sprintf("this took %ms to send", round(bot.latency * 1000, 1)))
 
 @bot.command(help="tells you if you are gay")
 async def am_i_gay(ctx):
-  await ctx.send("yes")
+  await ctx.reply("yes")
   
 @bot.command(help="tells you if the bot is gay")
 async def are_you_gay(ctx):
-  await ctx.send("only for <@808122595898556457>")
+  await ctx.reply("only for <@808122595898556457>")
 
 @bot.event
 async def on_ready():
@@ -125,19 +126,19 @@ async def predicate(ctx):
 @commands.has_permissions(moderate_members=True)
 async def ban(ctx, member: discord.Member, reason):
   if not commands.check(predicate):
-    await ctx.send("nuh uh")
+    await ctx.reply("nuh uh")
     return
   await member.ban(reason=reason)
-  ctx.send("bye bye %", member.name)
+  ctx.reply("bye bye %", member.name)
 
 @bot.command(help="kicks a user")
 @commands.has_permissions(moderate_members=True)
 async def kick(ctx, member: discord.Member, reason):
   if not commands.check(predicate):
-    await ctx.send("nuh uh")
+    await ctx.reply("nuh uh")
     return
   await member.kick(reason=reason)
-  ctx.send("bye bye %", member.name)
+  ctx.reply("bye bye %", member.name)
 
 @bot.event
 async def on_member_join(member):
@@ -148,51 +149,58 @@ async def on_member_join(member):
 @bot.command(help="cpu load on len computer")
 async def cpu(ctx):
   cpu_load = psutil.cpu_percent(interval=1)
-  await ctx.send(sprintf("len cpu is at %|%", cpu_load))
+  await ctx.reply(sprintf("len cpu is at %|%", cpu_load))
 
 @bot.command(help="ram on len computer")
 async def mem(ctx):
   mem = psutil.virtual_memory()
-  await ctx.send(sprintf("%GiB of %GiB ram used rn", round(mem.used / (1024**3), 2), round(mem.total / (1024**3), 2)))
+  await ctx.reply(sprintf("%GiB of %GiB ram used rn", round(mem.used / (1024**3), 2), round(mem.total / (1024**3), 2)))
 
 @bot.command(help="ram usage in bytes for some reason")
 async def membytes(ctx):
   mem = psutil.virtual_memory()
-  await ctx.send(sprintf("%B of %B ram used rn", mem.used, mem.total))
+  await ctx.reply(sprintf("%B of %B ram used rn", mem.used, mem.total))
 
 @bot.command(help="shows len root partition space")
 async def disk(ctx):
   disk = psutil.disk_usage("/")
-  await ctx.send(sprintf("%GiB free of %GiB", (disk.total - disk.used) // (1024**3), disk.total // (1024**3)))
+  await ctx.reply(sprintf("%GiB free of %GiB", (disk.total - disk.used) // (1024**3), disk.total // (1024**3)))
 
 @bot.command(help="shows len OS")
 async def os(ctx):
   with open("/home/lena/arch_logo", 'r') as f:
     logo = f.read()
-  await ctx.send(sprintf("```\n%\n```", logo.replace("`", "'")))
+  await ctx.reply(sprintf("```\n%\n```", logo.replace("`", "'")))
 
 @bot.command(help="give botter source code")
 async def source(ctx):
-  await ctx.send("https://github.com/lenanya/botter")
+  await ctx.reply("https://github.com/lenanya/botter")
   
 @bot.command(help="nuh uh")
 async def nuh(ctx):
-  await ctx.send("https://cdn.discordapp.com/attachments/1306832831988629528/1362111230155952188/car-garn47-397016279.gif?ex=6813a970&is=681257f0&hm=553b8456e1933ef8dba2be7e789e1dbea3475e3f5e44697c08c5a45d34ef5692&")
+  await ctx.reply("https://cdn.discordapp.com/attachments/1306832831988629528/1362111230155952188/car-garn47-397016279.gif?ex=6813a970&is=681257f0&hm=553b8456e1933ef8dba2be7e789e1dbea3475e3f5e44697c08c5a45d34ef5692&")
 
 @bot.command(help="get lenas local ip (why?)")
 async def ip(ctx):
-  ctx.send("192.168.69.69")
+  ctx.reply("192.168.69.69")
 
 @bot.command(help="print current directory lena is in")
 async def pwd(ctx):
   with open("cwd", "r") as f:
     cwd = f.read()
-  await ctx.send(sprintf("lena is in `%`", cwd))
+  await ctx.reply(sprintf("lena is in `%`", cwd))
   
 @bot.command(help="len room temperature")
 async def temperature(ctx):
   with open("/var/www/arduino/temp", "r") as f:
     temp = f.read() + "°C"
-  await ctx.send(sprintf("lens room is % rn", temp))
+  await ctx.reply(sprintf("lens room is % rn", temp))
+  
+@bot.event
+async def on_command_error(ctx, error):
+  if isinstance(error, commands.CommandNotFound):
+    ctx.reply("that command doesnt exist")
+  else:
+    ctx.reply(sprintf("error: %", error))
 
 bot.run(token)
