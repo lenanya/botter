@@ -188,5 +188,11 @@ async def pwd(ctx):
   with open("cwd", "r") as f:
     cwd = f.read()
   await ctx.send(sprintf("lena is in `%`", cwd))
+  
+@bot.command(help="len room temperature")
+async def temperature(ctx):
+  with open("/var/www/arduino/temp", "r") as f:
+    temp = f.read() + "°C"
+  await ctx.send(sprintf("lens room is % rn", temp))
 
 bot.run(token)
