@@ -153,7 +153,12 @@ async def cpu(ctx):
 @bot.command(help="ram on len computer")
 async def mem(ctx):
   mem = psutil.virtual_memory()
-  await ctx.send(sprintf("%MiB of %MiB ram used rn", mem.used // (1024**2), mem.total // (1024**2)))
+  await ctx.send(sprintf("%GiB of %GiB ram used rn", round(mem.used / (1024**3), 2), round(mem.total / (1024**3), 2)))
+
+@bot.command(help="ram usage in bytes for some reason")
+async def membytes(ctx):
+  mem = psutil.virtual_memory()
+  await ctx.send(sprintf("%B of %B ram used rn", mem.used, mem.total))
 
 @bot.command(help="shows len root partition space")
 async def disk(ctx):
@@ -170,4 +175,12 @@ async def os(ctx):
 async def source(ctx):
   await ctx.send("https://github.com/lenanya/botter")
   
+@bot.command(help="nuh uh")
+async def nuh(ctx):
+  await ctx.send("https://cdn.discordapp.com/attachments/1306832831988629528/1362111230155952188/car-garn47-397016279.gif?ex=6813a970&is=681257f0&hm=553b8456e1933ef8dba2be7e789e1dbea3475e3f5e44697c08c5a45d34ef5692&")
+
+@bot.command(help="get lenas local ip (why?)")
+async def ip(ctx):
+  ctx.send("192.168.69.69")
+
 bot.run(token)
