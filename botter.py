@@ -187,6 +187,6 @@ async def ip(ctx):
 async def pwd(ctx):
   with open("cwd", "r") as f:
     cwd = f.read()
-  ctx.send(sprintf("lena is in %", cwd))
+  await ctx.send(sprintf("lena is in %", cwd))
 
 bot.run(token)
