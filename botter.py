@@ -166,4 +166,8 @@ async def os(ctx):
     logo = f.read()
   await ctx.send(sprintf("```\n%\n```", logo.replace("`", "'")))
 
+@bot.command(help="give botter source code")
+async def source(ctx):
+  await ctx.send("https://github.com/lenanya/botter")
+  
 bot.run(token)
