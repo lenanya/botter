@@ -199,8 +199,8 @@ async def temperature(ctx):
 @bot.event
 async def on_command_error(ctx, error):
   if isinstance(error, commands.CommandNotFound):
-    ctx.reply("that command doesnt exist")
+    await ctx.reply("that command doesnt exist")
   else:
-    ctx.reply(sprintf("error: %", error))
+    await ctx.reply(sprintf("error: %", error))
 
 bot.run(token)
