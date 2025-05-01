@@ -69,8 +69,8 @@ bot = commands.Bot(command_prefix='#', intents=intents)
 
 client = genai.Client(api_key=gemini_api_key)
 
-@bot.command(help="lets u time yourself out for an hour")
-async def mute_me(ctx, hours):
+@bot.slash_command(name="mute_me", description="lets u time yourself out for an hour")
+async def mute_me(ctx: discord.ApplicationContext, hours):
   id = str(ctx.author.id)
   with open("stupid.json", "r") as f:
     idiots = json.load(f);
@@ -81,77 +81,74 @@ async def mute_me(ctx, hours):
   with open("stupid.json", "w") as f:
     json.dump(idiots, f)
   await ctx.author.timeout_for(timedelta(hours=int(hours)), reason="self inflicted")
-  await ctx.reply("congrats, you timed yourself out for an hour, dumbass")
+  await ctx.respond("congrats, you timed yourself out for an hour, dumbass")
 
-@bot.command(help="shows how many times uve muted urrself")
-async def stupid(ctx):
+@bot.slash_command(name="stupid", description="shows how many times uve muted urrself")
+async def stupid(ctx: discord.ApplicationContext):
   id = str(ctx.author.id)
   with open("stupid.json", "r") as f:
     idiots = json.load(f);
   if id in idiots:
-    await ctx.reply(sprintf("uve muted urself for % hours total, idiot", idiots[id]))
+    await ctx.respond(sprintf("uve muted urself for % hours total, idiot", idiots[id]))
   else:
-    await ctx.reply("u havent muted urself, good job")
+    await ctx.respond("u havent muted urself, good job")
 
-@bot.command(help="makes the bot say things")
-async def echo(ctx, *vaargs):
-  val = ""
-  for i in vaargs:
-    val += str(i) + " "
-  await ctx.send(val)
+@bot.slash_command(name="echo", description="makes the bot say things")
+async def echo(ctx: discord.ApplicationContext, text):
+  await ctx.send(text)
 
-@bot.command(help="murders botter (len only)")
-async def kys(ctx):
+@bot.slash_command(name="kys", description="murders botter (len only)")
+async def kys(ctx: discord.ApplicationContext):
   if ctx.author.id != 808122595898556457:
-    await ctx.reply("nuh uh")
+    await ctx.respond("nuh uh")
     return
-  await ctx.reply("k bye")
+  await ctx.respond("k bye")
   exit(0)
   
-@bot.command(help="returns your id")
-async def id(ctx):
-  await ctx.reply(ctx.author.id)
+@bot.slash_command(name="id", description="returns your id")
+async def id(ctx: discord.ApplicationContext):
+  await ctx.respond(ctx.author.id)
   
-@bot.command(help="shows the bots latency")
-async def ping(ctx):
-  await ctx.reply(sprintf("this took %ms to send", round(bot.latency * 1000, 1)))
+@bot.slash_command(name="ping", description="shows the bots latency")
+async def ping(ctx: discord.ApplicationContext):
+  await ctx.respond(sprintf("this took %ms to send", round(bot.latency * 1000, 1)))
 
-@bot.command(help="tells you if you are gay")
-async def am_i_gay(ctx):
-  await ctx.reply("yes")
+@bot.slash_command(name="am_i_gay" ,description="tells you if you are gay")
+async def am_i_gay(ctx: discord.ApplicationContext):
+  await ctx.respond("yes")
   
-@bot.command(help="tells you if the bot is gay")
-async def are_you_gay(ctx):
-  await ctx.reply("only for <@808122595898556457>")
+@bot.slash_command(name="are_you_gay" ,description="tells you if the bot is gay")
+async def are_you_gay(ctx: discord.ApplicationContext):
+  await ctx.respond("only for <@808122595898556457>")
 
 @bot.event
 async def on_ready():
   printf("logged in as % (%)\n", bot.user.name, bot.user.id)
   await bot.get_channel(1367249503593168978).send("hi chat i got restarted :3")
 
-async def predicate(ctx):
+async def predicate(ctx: discord.ApplicationContext):
   required_role = discord.utils.get(ctx.guild.roles, name="mod")
   if required_role is None:
       return False
   return any(role >= required_role for role in ctx.author.roles)
 
-@bot.command(help="bans a user")
+@bot.slash_command(name="ban" ,description="bans a user")
 @commands.has_permissions(moderate_members=True)
-async def ban(ctx, member: discord.Member, reason):
+async def ban(ctx: discord.ApplicationContext, member: discord.Member, reason):
   if not commands.check(predicate):
-    await ctx.reply("nuh uh")
+    await ctx.respond("nuh uh")
     return
   await member.ban(reason=reason)
-  await ctx.reply("bye bye %", member.name)
+  await ctx.respond("bye bye %", member.name)
 
-@bot.command(help="kicks a user")
+@bot.slash_command(name="kick" ,description="kicks a user")
 @commands.has_permissions(moderate_members=True)
-async def kick(ctx, member: discord.Member, reason):
+async def kick(ctx: discord.ApplicationContext, member: discord.Member, reason):
   if not commands.check(predicate):
-    await ctx.reply("nuh uh")
+    await ctx.respond("nuh uh")
     return
   await member.kick(reason=reason)
-  await ctx.reply("bye bye %", member.name)
+  await ctx.respond("bye bye %", member.name)
 
 @bot.event
 async def on_member_join(member):
@@ -159,94 +156,91 @@ async def on_member_join(member):
   await member.add_roles(role)
   await bot.get_channel(1367249503593168978).send(sprintf("new member: %, hiiii :3", member.name))
 
-@bot.command(help="cpu load on len computer")
-async def cpu(ctx):
+@bot.slash_command(name="cpu" ,description="cpu load on len computer")
+async def cpu(ctx: discord.ApplicationContext):
   cpu_load = psutil.cpu_percent(interval=1)
-  await ctx.reply(sprintf("len cpu is at %|%", cpu_load))
+  await ctx.respond(sprintf("len cpu is at %|%", cpu_load))
 
-@bot.command(help="ram on len computer")
-async def mem(ctx):
+@bot.slash_command(name="mem" ,description="ram on len computer")
+async def mem(ctx: discord.ApplicationContext):
   mem = psutil.virtual_memory()
-  await ctx.reply(sprintf("%GiB of %GiB ram used rn", round(mem.used / (1024**3), 2), round(mem.total / (1024**3), 2)))
+  await ctx.respond(sprintf("%GiB of %GiB ram used rn", round(mem.used / (1024**3), 2), round(mem.total / (1024**3), 2)))
 
-@bot.command(help="ram usage in bytes for some reason")
-async def membytes(ctx):
+@bot.slash_command(name="membytes" ,description="ram usage in bytes for some reason")
+async def membytes(ctx: discord.ApplicationContext):
   mem = psutil.virtual_memory()
-  await ctx.reply(sprintf("%B of %B ram used rn", mem.used, mem.total))
+  await ctx.respond(sprintf("%B of %B ram used rn", mem.used, mem.total))
 
-@bot.command(help="shows len root partition space")
-async def disk(ctx):
+@bot.slash_command(name="disk" ,description="shows len root partition space")
+async def disk(ctx: discord.ApplicationContext):
   disk = psutil.disk_usage("/")
-  await ctx.reply(sprintf("%GiB free of %GiB", (disk.total - disk.used) // (1024**3), disk.total // (1024**3)))
+  await ctx.respond(sprintf("%GiB free of %GiB", (disk.total - disk.used) // (1024**3), disk.total // (1024**3)))
 
-@bot.command(help="shows len OS")
-async def os(ctx):
+@bot.slash_command(name="os" ,description="shows len OS")
+async def os(ctx: discord.ApplicationContext):
   with open("/home/lena/arch_logo", 'r') as f:
     logo = f.read()
-  await ctx.reply(sprintf("```\n%\n```", logo.replace("`", "'")))
+  await ctx.respond(sprintf("```\n%\n```", logo.replace("`", "'")))
 
-@bot.command(help="give botter source code")
-async def source(ctx):
-  await ctx.reply("https://github.com/lenanya/botter")
+@bot.slash_command(name="source" ,description="give botter source code")
+async def source(ctx: discord.ApplicationContext):
+  await ctx.respond("https://github.com/lenanya/botter")
   
-@bot.command(help="nuh uh")
-async def nuh(ctx):
-  await ctx.reply("https://cdn.discordapp.com/attachments/1306832831988629528/1362111230155952188/car-garn47-397016279.gif?ex=6813a970&is=681257f0&hm=553b8456e1933ef8dba2be7e789e1dbea3475e3f5e44697c08c5a45d34ef5692&")
+@bot.slash_command(name="nuh" ,description="nuh uh")
+async def nuh(ctx: discord.ApplicationContext):
+  await ctx.respond("https://cdn.discordapp.com/attachments/1306832831988629528/1362111230155952188/car-garn47-397016279.gif?ex=6813a970&is=681257f0&hm=553b8456e1933ef8dba2be7e789e1dbea3475e3f5e44697c08c5a45d34ef5692&")
 
-@bot.command(help="get lenas local ip (why?)")
-async def ip(ctx):
-  await ctx.reply("192.168.69.69")
+@bot.slash_command(name="ip" ,description="get lenas local ip (why?)")
+async def ip(ctx: discord.ApplicationContext):
+  await ctx.respond("192.168.69.69")
 
-@bot.command(help="print current directory lena is in")
-async def pwd(ctx):
+@bot.slash_command(name="pwd" ,description="print current directory lena is in")
+async def pwd(ctx: discord.ApplicationContext):
   with open("cwd", "r") as f:
     cwd = f.read()
-  await ctx.reply(sprintf("lena is in `%`", cwd))
+  await ctx.respond(sprintf("lena is in `%`", cwd))
   
-@bot.command(help="len room temperature")
-async def temperature(ctx):
+@bot.slash_command(name="temperature" ,description="len room temperature")
+async def temperature(ctx: discord.ApplicationContext):
   with open("/var/www/arduino/temp", "r") as f:
     temp = f.read() + "°C"
-  await ctx.reply(sprintf("lens room is % rn", temp))
+  await ctx.respond(sprintf("lens room is % rn", temp))
   
 @bot.event
-async def on_command_error(ctx, error):
+async def on_command_error(ctx: discord.ApplicationContext, error):
   if isinstance(error, commands.CommandNotFound):
     await ctx.reply("that command doesnt exist")
   else:
     await ctx.reply(sprintf("error: %", error))
 
-@bot.command(help="block user from using status (len only)")
-async def status_block(ctx, member: discord.Member):
+@bot.slash_command(name="status_block" ,description="block user from using status (len only)")
+async def status_block(ctx: discord.ApplicationContext, member: discord.Member):
   if ctx.author.id != 808122595898556457:
-    await ctx.reply("nuh uh")
+    await ctx.respond("nuh uh")
     return
   with open("blocked.json", "r") as f:
     blocked = json.load(f)
   blocked.append(member.id)
   with open("blocked.json", "w") as f:
     json.dump(blocked, f)
-  await ctx.reply(sprintf("% can no longer change len status", member.name))
+  await ctx.respond(sprintf("% can no longer change len status", member.name))
 
-@bot.command(help="change len status")
-async def status(ctx, *vaargs):
+@bot.slash_command(name="status" ,description="change len status")
+async def status(ctx: discord.ApplicationContext, text):
   with open("blocked.json", "r") as f:
     blocked = json.load(f)
   uid = str(ctx.author.id)
   if uid in blocked:
-    await ctx.reply("youve been blocked from doing this")
+    await ctx.respond("youve been blocked from doing this")
     return
   with open("status.json", "r") as f:
     users = json.load(f)
   if uid in users and not "808122595898556457":
     if users[uid] > int(time()):
-      await ctx.reply(sprintf("you can do this again <t:%:R>", users[uid]))
+      await ctx.respond(sprintf("you can do this again <t:%:R>", users[uid]))
       return
-  text = ""
-  for i in vaargs:
-    text += i + " "
   if len(text) > 128:
-    await ctx.reply("sorry, too long")
+    await ctx.respond("sorry, too long")
     return
   headers = {
     "Authorization": dct,
@@ -261,25 +255,22 @@ async def status(ctx, *vaargs):
   with open("status.json", "w") as f:
     json.dump(users, f)
   requests.patch("https://discord.com/api/v10/users/@me/settings", headers=headers, json=payload)
-  await ctx.reply("changed lens status lol")
+  await ctx.respond("changed lens status lol")
 
-@bot.command(help="change botters status (len only)")
-async def bot_status(ctx, *vaargs):
+@bot.slash_command(name="bot_status" ,description="change botters status (len only)")
+async def bot_status(ctx: discord.ApplicationContext, text: str):
   if ctx.author.id != 808122595898556457:
-    await ctx.reply("nuh uh")
+    await ctx.respond("nuh uh")
     return 
-  text = ""
-  for i in vaargs:
-    text += i + " "
-  await bot.change_presence(activity=discord.Game(name=text))
-  await ctx.reply("changed bot status uwu")
+  await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name=text))
+  await ctx.respond("changed bot status uwu")
 
-@bot.command(help="happiness")
-async def song(ctx):
+@bot.slash_command(name="song" ,description="happiness")
+async def song(ctx: discord.ApplicationContext):
   await ctx.send("https://www.youtube.com/watch?v=atdO6YRg5Cw")
 
-@bot.command(help="either nothing happens, or you get muted")
-async def gambling(ctx):
+@bot.slash_command(name="gambling" ,description="either nothing happens, or you get muted")
+async def gambling(ctx: discord.ApplicationContext):
   coinflip = random.randint(1, 2)
   if coinflip == 1:
     id = str(ctx.author.id)
@@ -292,12 +283,12 @@ async def gambling(ctx):
     with open("stupid.json", "w") as f:
       json.dump(idiots, f)
     await ctx.author.timeout_for(timedelta(hours=1), reason="gambling")
-    await ctx.reply("rip bozo")
+    await ctx.respond("rip bozo")
   else:
-    await ctx.reply("you get to live another day!")
+    await ctx.respond("you get to live another day!")
 
-@bot.command(help="show the top idiots in the server")
-async def top(ctx):
+@bot.slash_command(name="top", description="show the top idiots in the server")
+async def top(ctx: discord.ApplicationContext):
   with open("stupid.json", "r") as f:
     idiots = json.load(f);
   idiots_sorted = sorted(idiots.items(), key=lambda item: item[1], reverse=True)
@@ -307,7 +298,7 @@ async def top(ctx):
     description += f"**#{i}** <@{user_id}> — {hours} hour(s) muted\n"
   embed = discord.Embed(title="top idiots", color=0xff91ff)
   embed.description = description
-  await ctx.reply(embed=embed, allowed_mentions=discord.AllowedMentions(users=False))
+  await ctx.respond(embed=embed, allowed_mentions=discord.AllowedMentions(users=False))
   
 prompt = """
 <Instructions>
@@ -318,26 +309,38 @@ prompt = """
 5. do not use punctuation like !
 6. sometimes append :3 to the end of sentences, but not to every sentence
 7. your name is botter, your creator is len, you were written in python
+8. your favorite musician is asteria
+9. your favorite music genre is scenecore
+10. you love linux
+11. you dont like windows
+12. javascript is the worst programming language ever written
 </Instructions>
-<UserPrompt>
+<Information>
 """
   
-@bot.command(help="talk to botter")
-async def ai(ctx, *vaargs):
-  text = ""
-  for i in vaargs:
-    text += i + " "
+@bot.slash_command(name="ai" ,description="talk to botter")
+async def ai(ctx: discord.ApplicationContext, text):
+  full_prompt = prompt + "the user who prompted you is called " + ctx.author.name + "</Information><UserPrompt>" + text + "</UserPrompt>"
+    
   response = client.models.generate_content(
     model="gemini-2.0-flash",
-    contents=prompt+text+"</UserPrompt>"
+    contents=full_prompt
   )
-  if len(response.text) < 2000: 
-    await ctx.reply(response.text)
-  else:
-    await ctx.reply("gemini responded with more than 2000 characters, this might not work lol")
-    index = 0
-    while index < len(response.text):
-      await ctx.reply(response.text[index:index+2000])
-      index += 2000
+  
+  embed: discord.Embed = discord.Embed(title=text, color=0xff91ff)
+  embed.description = response.text
+   
+  await ctx.respond(embed=embed)
+
+@bot.event
+async def on_message(message: discord.Message):
+  if message.author.id == bot.user.id:
+    return
+  if "meow" in message.content:
+    await message.reply("meow :3")
+  elif "good bot" in message.content:
+    await message.reply("uwu")
+  elif ":3" in message.content:
+    await message.reply(":3")
 
 bot.run(token)
