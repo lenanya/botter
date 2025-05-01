@@ -148,7 +148,7 @@ async def kick(ctx, member: discord.Member, reason):
 
 @bot.event
 async def on_member_join(member):
-  role = discord.utils.get(member.guild.roles, name="lowlies")
+  role = discord.utils.get(member.guild.roles, name="humans, probably")
   await member.add_roles(role)
   await bot.get_channel(1367249503593168978).send(sprintf("new member: %, hiiii :3", member.name))
 
@@ -256,5 +256,9 @@ async def bot_status(ctx, *vaargs):
     text += i + " "
   await bot.change_presence(activity=discord.Game(name=text))
   await ctx.reply("changed bot status uwu")
+
+@bot.command(help="happiness")
+async def song(ctx):
+  await ctx.send("https://www.youtube.com/watch?v=atdO6YRg5Cw")
 
 bot.run(token)
