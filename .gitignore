@@ -4,3 +4,5 @@ stupid.json
 cwd
 .dct
 blocked.json
+llama*
+.*

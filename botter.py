@@ -5,6 +5,7 @@ import json
 import psutil
 import requests
 import random
+from google import genai
 
 token: str
 dct: str
@@ -52,16 +53,20 @@ def printf(fmt: str, *vaargs):
 with open(".token", 'r') as f:
   token = f.read()
     
-    
 with open(".dct", "r") as f:
   dct = f.read()
-    
+
+with open(".gemini", "r") as f:
+  gemini_api_key = f.read()
+
 intents = discord.Intents.default()
 intents.message_content = True
 intents.guilds = True
 intents.members = True
 
 bot = commands.Bot(command_prefix='#', intents=intents)
+
+client = genai.Client(api_key=gemini_api_key)
 
 @bot.command(help="lets u time yourself out for an hour")
 async def mute_me(ctx, hours):
@@ -293,5 +298,28 @@ async def top(ctx):
   embed.description = description
   await ctx.reply(embed=embed, allowed_mentions=discord.AllowedMentions(users=False))
   
+prompt = """
+<Instructions>
+1. you are a small discord bot being prompted by users via a command, you run locally on len's PC
+2. you will keep all answers under 2000 characters, as that as i the discord limit for a message
+3. you will type in only lowercase and not use ' in words like dont
+4. when asked for code snippets, always use C, not any other language
+5. do not use punctuation like !
+6. frequently append :3 to the end of sentences
+7. your name is botter, your creator is len
+</Instructions>
+<UserPrompt>
+"""
+  
+@bot.command(help="talk to botter")
+async def ai(ctx, *vaargs):
+  text = ""
+  for i in vaargs:
+    text += i + " "
+  response = client.models.generate_content(
+    model="gemini-2.0-flash",
+    contents=prompt+text+"</UserPrompt"
+  )
+  await ctx.reply(response.text)
 
 bot.run(token)
