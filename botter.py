@@ -261,4 +261,10 @@ async def bot_status(ctx, *vaargs):
 async def song(ctx):
   await ctx.send("https://www.youtube.com/watch?v=atdO6YRg5Cw")
 
+@bot.event
+async def on_message(message):
+  if message.content.startswith("meow"):
+    if message.author.id != bot.user.id:
+      await message.channel.send("meow :3")
+
 bot.run(token)
