@@ -135,6 +135,7 @@ async def are_you_gay(ctx: discord.ApplicationContext):
 async def on_ready():
   printf("logged in as % (%)\n", bot.user.name, bot.user.id)
   await bot.get_channel(1367249503593168978).send("hi chat i got restarted :3")
+  await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="all of you"))
   check_reminders.start()
 
 async def predicate(ctx: discord.ApplicationContext):
@@ -408,5 +409,24 @@ async def check_reminders():
       reminders.pop(i)
   with open("reminders.json", "w") as f:
     json.dump(reminders, f)
-      
+
+@bot.slash_command(name="megagambling" ,description="either nothing happens, or you get muted for very long")
+async def megagambling(ctx: discord.ApplicationContext, stake: int):
+  printf("% used command megagambling\n", ctx.author.global_name)
+  timeout = random.randint(0, stake)
+  if timeout != 0:
+    id = str(ctx.author.id)
+    with open("stupid.json", "r") as f:
+      idiots = json.load(f);
+    if id in idiots:
+      idiots[id] += timeout
+    else:
+      idiots[id] = timeout
+    with open("stupid.json", "w") as f:
+      json.dump(idiots, f)
+    await ctx.author.timeout_for(timedelta(hours=stake), reason="megagambling")
+    await ctx.respond(sprintf("ur muted for %h now, rip bozo", timeout))
+  else:
+    await ctx.respond("you get to live another day")
+ 
 bot.run(token)
