@@ -263,7 +263,7 @@ async def song(ctx):
 
 @bot.event
 async def on_message(message):
-  if message.content.startswith("meow"):
+  if "meow" in message.content:
     if message.author.id != bot.user.id:
       await message.channel.send("meow :3")
 
