@@ -1,5 +1,5 @@
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 from datetime import timedelta
 import json
 import psutil
@@ -125,6 +125,7 @@ async def are_you_gay(ctx: discord.ApplicationContext):
 async def on_ready():
   printf("logged in as % (%)\n", bot.user.name, bot.user.id)
   await bot.get_channel(1367249503593168978).send("hi chat i got restarted :3")
+  check_reminders.start()
 
 async def predicate(ctx: discord.ApplicationContext):
   required_role = discord.utils.get(ctx.guild.roles, name="mod")
@@ -235,7 +236,7 @@ async def status(ctx: discord.ApplicationContext, text):
     return
   with open("status.json", "r") as f:
     users = json.load(f)
-  if uid in users and not "808122595898556457":
+  if uid in users:
     if users[uid] > int(time()):
       await ctx.respond(sprintf("you can do this again <t:%:R>", users[uid]))
       return
@@ -255,7 +256,7 @@ async def status(ctx: discord.ApplicationContext, text):
   with open("status.json", "w") as f:
     json.dump(users, f)
   requests.patch("https://discord.com/api/v10/users/@me/settings", headers=headers, json=payload)
-  await ctx.respond(sprintf("changed lens status to % lol", text))
+  await ctx.respond(sprintf("changed lens status to \"%\" lol", text))
 
 @bot.slash_command(name="bot_status" ,description="change botters status (len only)")
 async def bot_status(ctx: discord.ApplicationContext, text: str):
@@ -347,5 +348,33 @@ async def car(ctx: discord.ApplicationContext):
     car = f.read();
   embed.description = car
   await ctx.respond(embed=embed)
+
+@bot.slash_command(name="reminder", description="create a reminder")
+async def reminder(ctx: discord.ApplicationContext, message: str, days: int = 0,hours: int = 0, minutes: int = 5):
+  with open("reminders.json", "r") as f:
+    reminders = json.load(f)
+  when = int(time()) + days * 86400 + hours * 3600 + minutes * 60
+  reminders.append({
+    "user_id": str(ctx.author.id),
+    "when": when,
+    "message": message,
+    "channel": ctx.channel.id
+  })
+  with open("reminders.json", "w") as f:
+    json.dump(reminders, f)
+  await ctx.respond(sprintf("Created reminder % <t:%:R>", message, when))
+
+@tasks.loop(seconds=10)
+async def check_reminders():
+  printf("Checking reminders\n")
+  with open("reminders.json", "r") as f:
+    reminders = json.load(f)
+  for i in range(len(reminders)):
+    if reminders[i]['when'] < time():
+      await bot.get_channel(reminders[i]['channel']).send(sprintf("<@%> Reminder: `%`", reminders[i]['user_id'], reminders[i]['message']))
+      reminders.pop(i)
+  with open("reminders.json", "w") as f:
+    json.dump(reminders, f)
+      
 
 bot.run(token)
