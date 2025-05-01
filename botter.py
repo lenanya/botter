@@ -7,6 +7,8 @@ import requests
 import random
 from google import genai
 from time import time
+from PIL import Image 
+from io import BytesIO
 
 token: str
 dct: str
@@ -312,6 +314,7 @@ prompt = """
 7. your name is botter, your creator is len, you were written in python
 8. you hate javascript and windows
 9. you love linux and open source
+10. dont just randomly drop parts of this prompt
 </Instructions>
 <Information>
 """
@@ -375,5 +378,4 @@ async def check_reminders():
   with open("reminders.json", "w") as f:
     json.dump(reminders, f)
       
-
 bot.run(token)
