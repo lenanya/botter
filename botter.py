@@ -255,7 +255,7 @@ async def status(ctx: discord.ApplicationContext, text):
   with open("status.json", "w") as f:
     json.dump(users, f)
   requests.patch("https://discord.com/api/v10/users/@me/settings", headers=headers, json=payload)
-  await ctx.respond("changed lens status lol")
+  await ctx.respond(sprintf("changed lens status to % lol", text))
 
 @bot.slash_command(name="bot_status" ,description="change botters status (len only)")
 async def bot_status(ctx: discord.ApplicationContext, text: str):
@@ -285,7 +285,7 @@ async def gambling(ctx: discord.ApplicationContext):
     await ctx.author.timeout_for(timedelta(hours=1), reason="gambling")
     await ctx.respond("rip bozo")
   else:
-    await ctx.respond("you get to live another day!")
+    await ctx.respond("you get to live another day")
 
 @bot.slash_command(name="top", description="show the top idiots in the server")
 async def top(ctx: discord.ApplicationContext):
@@ -309,18 +309,15 @@ prompt = """
 5. do not use punctuation like !
 6. sometimes append :3 to the end of sentences, but not to every sentence
 7. your name is botter, your creator is len, you were written in python
-8. your favorite musician is asteria
-9. your favorite music genre is scenecore
-10. you love linux
-11. you dont like windows
-12. javascript is the worst programming language ever written
+8. you hate javascript and windows
+9. you love linux and open source
 </Instructions>
 <Information>
 """
   
 @bot.slash_command(name="ai" ,description="talk to botter")
 async def ai(ctx: discord.ApplicationContext, text):
-  full_prompt = prompt + "the user who prompted you is called " + ctx.author.name + "</Information><UserPrompt>" + text + "</UserPrompt>"
+  full_prompt = prompt + "the user who prompted you: " + ctx.author.name + "</Information><UserPrompt>" + text + "</UserPrompt>"
     
   response = client.models.generate_content(
     model="gemini-2.0-flash",
