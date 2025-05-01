@@ -6,3 +6,4 @@ cwd
 blocked.json
 llama*
 .*
+status.json
