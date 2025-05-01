@@ -340,4 +340,12 @@ async def on_message(message: discord.Message):
   elif ":3" in message.content:
     await message.reply(":3")
 
+@bot.slash_command(name="car", description="car")
+async def car(ctx: discord.ApplicationContext):
+  embed: discord.Embed = discord.Embed(title="car", color=0xff91ff)
+  with open("car.txt", "r") as f:
+    car = f.read();
+  embed.description = car
+  await ctx.respond(embed=embed)
+
 bot.run(token)
