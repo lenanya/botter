@@ -3,3 +3,4 @@ cwd
 .*
 car.txt
 *.json
+*.log

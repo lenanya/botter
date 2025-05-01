@@ -73,6 +73,7 @@ client = genai.Client(api_key=gemini_api_key)
 
 @bot.slash_command(name="mute_me", description="lets u time yourself out for an hour")
 async def mute_me(ctx: discord.ApplicationContext, hours):
+  printf("% used command mute_me\n", ctx.author.global_name)
   id = str(ctx.author.id)
   with open("stupid.json", "r") as f:
     idiots = json.load(f);
@@ -87,6 +88,7 @@ async def mute_me(ctx: discord.ApplicationContext, hours):
 
 @bot.slash_command(name="stupid", description="shows how many times uve muted urrself")
 async def stupid(ctx: discord.ApplicationContext):
+  printf("% used command stupid\n", ctx.author.global_name)
   id = str(ctx.author.id)
   with open("stupid.json", "r") as f:
     idiots = json.load(f);
@@ -97,10 +99,12 @@ async def stupid(ctx: discord.ApplicationContext):
 
 @bot.slash_command(name="echo", description="makes the bot say things")
 async def echo(ctx: discord.ApplicationContext, text):
+  printf("% used command echo\n", ctx.author.global_name)
   await ctx.send(text)
 
 @bot.slash_command(name="kys", description="murders botter (len only)")
 async def kys(ctx: discord.ApplicationContext):
+  printf("% used command kys\n", ctx.author.global_name)
   if ctx.author.id != 808122595898556457:
     await ctx.respond("nuh uh")
     return
@@ -109,18 +113,22 @@ async def kys(ctx: discord.ApplicationContext):
   
 @bot.slash_command(name="id", description="returns your id")
 async def id(ctx: discord.ApplicationContext):
+  printf("% used command id\n", ctx.author.global_name)
   await ctx.respond(ctx.author.id)
   
 @bot.slash_command(name="ping", description="shows the bots latency")
 async def ping(ctx: discord.ApplicationContext):
+  printf("% used command ping\n", ctx.author.global_name)
   await ctx.respond(sprintf("this took %ms to send", round(bot.latency * 1000, 1)))
 
 @bot.slash_command(name="am_i_gay" ,description="tells you if you are gay")
 async def am_i_gay(ctx: discord.ApplicationContext):
+  printf("% used command am_i_gay\n", ctx.author.global_name)
   await ctx.respond("yes")
   
 @bot.slash_command(name="are_you_gay" ,description="tells you if the bot is gay")
 async def are_you_gay(ctx: discord.ApplicationContext):
+  printf("% used command are_you_gay\n", ctx.author.global_name)
   await ctx.respond("only for <@808122595898556457>")
 
 @bot.event
@@ -138,6 +146,7 @@ async def predicate(ctx: discord.ApplicationContext):
 @bot.slash_command(name="ban" ,description="bans a user")
 @commands.has_permissions(moderate_members=True)
 async def ban(ctx: discord.ApplicationContext, member: discord.Member, reason):
+  printf("% used command ban\n", ctx.author.global_name)
   if not commands.check(predicate):
     await ctx.respond("nuh uh")
     return
@@ -147,6 +156,7 @@ async def ban(ctx: discord.ApplicationContext, member: discord.Member, reason):
 @bot.slash_command(name="kick" ,description="kicks a user")
 @commands.has_permissions(moderate_members=True)
 async def kick(ctx: discord.ApplicationContext, member: discord.Member, reason):
+  printf("% used command kick\n", ctx.author.global_name)
   if not commands.check(predicate):
     await ctx.respond("nuh uh")
     return
@@ -161,50 +171,60 @@ async def on_member_join(member):
 
 @bot.slash_command(name="cpu" ,description="cpu load on len computer")
 async def cpu(ctx: discord.ApplicationContext):
+  printf("% used command cpu\n", ctx.author.global_name)
   cpu_load = psutil.cpu_percent(interval=1)
   await ctx.respond(sprintf("len cpu is at %|%", cpu_load))
 
 @bot.slash_command(name="mem" ,description="ram on len computer")
 async def mem(ctx: discord.ApplicationContext):
+  printf("% used command mem\n", ctx.author.global_name)
   mem = psutil.virtual_memory()
   await ctx.respond(sprintf("%GiB of %GiB ram used rn", round(mem.used / (1024**3), 2), round(mem.total / (1024**3), 2)))
 
 @bot.slash_command(name="membytes" ,description="ram usage in bytes for some reason")
 async def membytes(ctx: discord.ApplicationContext):
+  printf("% used command membytes\n", ctx.author.global_name)
   mem = psutil.virtual_memory()
   await ctx.respond(sprintf("%B of %B ram used rn", mem.used, mem.total))
 
 @bot.slash_command(name="disk" ,description="shows len root partition space")
 async def disk(ctx: discord.ApplicationContext):
+  printf("% used command disk\n", ctx.author.global_name)
   disk = psutil.disk_usage("/")
   await ctx.respond(sprintf("%GiB free of %GiB", (disk.total - disk.used) // (1024**3), disk.total // (1024**3)))
 
 @bot.slash_command(name="os" ,description="shows len OS")
 async def os(ctx: discord.ApplicationContext):
+  printf("% used command os\n", ctx.author.global_name)
   with open("/home/lena/arch_logo", 'r') as f:
     logo = f.read()
   await ctx.respond(sprintf("```\n%\n```", logo.replace("`", "'")))
 
 @bot.slash_command(name="source" ,description="give botter source code")
 async def source(ctx: discord.ApplicationContext):
+  printf("% used command source\n", ctx.author.global_name)
   await ctx.respond("https://github.com/lenanya/botter")
   
 @bot.slash_command(name="nuh" ,description="nuh uh")
 async def nuh(ctx: discord.ApplicationContext):
+  printf("% used command nuh\n", ctx.author.global_name)
   await ctx.respond("https://cdn.discordapp.com/attachments/1306832831988629528/1362111230155952188/car-garn47-397016279.gif?ex=6813a970&is=681257f0&hm=553b8456e1933ef8dba2be7e789e1dbea3475e3f5e44697c08c5a45d34ef5692&")
 
 @bot.slash_command(name="ip" ,description="get lenas local ip (why?)")
 async def ip(ctx: discord.ApplicationContext):
+  printf("% used command ip\n", ctx.author.global_name)
   await ctx.respond("192.168.69.69")
 
 @bot.slash_command(name="pwd" ,description="print current directory lena is in")
 async def pwd(ctx: discord.ApplicationContext):
+  printf("% used command pwd\n", ctx.author.global_name)
   with open("cwd", "r") as f:
     cwd = f.read()
   await ctx.respond(sprintf("lena is in `%`", cwd))
   
 @bot.slash_command(name="temperature" ,description="len room temperature")
 async def temperature(ctx: discord.ApplicationContext):
+  printf("% used command temperature\n", ctx.author.global_name)
   with open("/var/www/arduino/temp", "r") as f:
     temp = f.read() + "°C"
   await ctx.respond(sprintf("lens room is % rn", temp))
@@ -218,6 +238,7 @@ async def on_command_error(ctx: discord.ApplicationContext, error):
 
 @bot.slash_command(name="status_block" ,description="block user from using status (len only)")
 async def status_block(ctx: discord.ApplicationContext, member: discord.Member):
+  printf("% used command status_block\n", ctx.author.global_name)
   if ctx.author.id != 808122595898556457:
     await ctx.respond("nuh uh")
     return
@@ -230,6 +251,7 @@ async def status_block(ctx: discord.ApplicationContext, member: discord.Member):
 
 @bot.slash_command(name="status" ,description="change len status")
 async def status(ctx: discord.ApplicationContext, text):
+  printf("% used command status\n", ctx.author.global_name)
   with open("blocked.json", "r") as f:
     blocked = json.load(f)
   uid = str(ctx.author.id)
@@ -257,11 +279,14 @@ async def status(ctx: discord.ApplicationContext, text):
   users[uid] = int(time()) + 86400
   with open("status.json", "w") as f:
     json.dump(users, f)
+  with open("status.log", "a") as f:
+    f.write(ctx.author.global_name + " " + str(time()))
   requests.patch("https://discord.com/api/v10/users/@me/settings", headers=headers, json=payload)
   await ctx.respond(sprintf("changed lens status to \"%\" lol", text))
 
 @bot.slash_command(name="bot_status" ,description="change botters status (len only)")
 async def bot_status(ctx: discord.ApplicationContext, text: str):
+  printf("% used command bot_status\n", ctx.author.global_name)
   if ctx.author.id != 808122595898556457:
     await ctx.respond("nuh uh")
     return 
@@ -270,10 +295,12 @@ async def bot_status(ctx: discord.ApplicationContext, text: str):
 
 @bot.slash_command(name="song" ,description="happiness")
 async def song(ctx: discord.ApplicationContext):
+  printf("% used command song\n", ctx.author.global_name)
   await ctx.send("https://www.youtube.com/watch?v=atdO6YRg5Cw")
 
 @bot.slash_command(name="gambling" ,description="either nothing happens, or you get muted")
 async def gambling(ctx: discord.ApplicationContext):
+  printf("% used command gambling\n", ctx.author.global_name)
   coinflip = random.randint(1, 2)
   if coinflip == 1:
     id = str(ctx.author.id)
@@ -292,6 +319,7 @@ async def gambling(ctx: discord.ApplicationContext):
 
 @bot.slash_command(name="top", description="show the top idiots in the server")
 async def top(ctx: discord.ApplicationContext):
+  printf("% used command top\n", ctx.author.global_name)
   with open("stupid.json", "r") as f:
     idiots = json.load(f);
   idiots_sorted = sorted(idiots.items(), key=lambda item: item[1], reverse=True)
@@ -321,6 +349,7 @@ prompt = """
   
 @bot.slash_command(name="ai" ,description="talk to botter")
 async def ai(ctx: discord.ApplicationContext, text):
+  printf("% used command ai\n", ctx.author.global_name)
   full_prompt = prompt + "the user who prompted you: " + ctx.author.name + "</Information><UserPrompt>" + text + "</UserPrompt>"
     
   response = client.models.generate_content(
@@ -346,6 +375,7 @@ async def on_message(message: discord.Message):
 
 @bot.slash_command(name="car", description="car")
 async def car(ctx: discord.ApplicationContext):
+  printf("% used command car\n", ctx.author.global_name)
   embed: discord.Embed = discord.Embed(title="car", color=0xff91ff)
   with open("car.txt", "r") as f:
     car = f.read();
@@ -354,6 +384,7 @@ async def car(ctx: discord.ApplicationContext):
 
 @bot.slash_command(name="reminder", description="create a reminder")
 async def reminder(ctx: discord.ApplicationContext, message: str, days: int = 0,hours: int = 0, minutes: int = 5):
+  printf("% used command reminder\n", ctx.author.global_name)
   with open("reminders.json", "r") as f:
     reminders = json.load(f)
   when = int(time()) + days * 86400 + hours * 3600 + minutes * 60
