@@ -93,7 +93,7 @@ async def echo(ctx, *vaargs):
     val += str(i) + " "
   await ctx.send(val)
 
-@bot.command(help="murders botter")
+@bot.command(help="murders botter (len only)")
 async def kys(ctx):
   if ctx.author.id != 808122595898556457:
     await ctx.reply("nuh uh")
@@ -150,7 +150,7 @@ async def kick(ctx, member: discord.Member, reason):
 async def on_member_join(member):
   role = discord.utils.get(member.guild.roles, name="lowlies")
   await member.add_roles(role)
-  await bot.get_channel(1367249503593168978).send(sprintf("new member: %\nhi", member.name))
+  await bot.get_channel(1367249503593168978).send(sprintf("new member: %, hiiii :3", member.name))
 
 @bot.command(help="cpu load on len computer")
 async def cpu(ctx):
@@ -209,7 +209,7 @@ async def on_command_error(ctx, error):
   else:
     await ctx.reply(sprintf("error: %", error))
 
-@bot.command(help="block user from using status")
+@bot.command(help="block user from using status (len only)")
 async def status_block(ctx, member: discord.Member):
   if ctx.author.id != 808122595898556457:
     await ctx.reply("nuh uh")
@@ -245,5 +245,16 @@ async def status(ctx, *vaargs):
   }
   requests.patch("https://discord.com/api/v10/users/@me/settings", headers=headers, json=payload)
   await ctx.reply("changed lens status lol")
+
+@bot.command(help="change botters status (len only)")
+async def bot_status(ctx, *vaargs):
+  if ctx.author.id != 808122595898556457:
+    ctx.reply("nuh uh")
+    return 
+  text = ""
+  for i in vaargs:
+    text += i + " "
+  await bot.change_presence(activity=discord.Game(name=text))
+  await ctx.reply("changed bot status uwu")
 
 bot.run(token)
