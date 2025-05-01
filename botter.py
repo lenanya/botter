@@ -4,6 +4,7 @@ from datetime import timedelta
 import json
 import psutil
 import requests
+import random
 
 token: str
 dct: str
@@ -63,17 +64,17 @@ intents.members = True
 bot = commands.Bot(command_prefix='#', intents=intents)
 
 @bot.command(help="lets u time yourself out for an hour")
-async def mute_me(ctx):
+async def mute_me(ctx, hours):
   id = str(ctx.author.id)
   with open("stupid.json", "r") as f:
     idiots = json.load(f);
   if id in idiots:
-    idiots[id] += 1
+    idiots[id] += int(hours)
   else:
-    idiots[id] = 1
+    idiots[id] = int(hours)
   with open("stupid.json", "w") as f:
     json.dump(idiots, f)
-  await ctx.author.timeout_for(timedelta(hours=1), reason="self inflicted")
+  await ctx.author.timeout_for(timedelta(hours=int(hours)), reason="self inflicted")
   await ctx.reply("congrats, you timed yourself out for an hour, dumbass")
 
 @bot.command(help="shows how many times uve muted urrself")
@@ -261,10 +262,36 @@ async def bot_status(ctx, *vaargs):
 async def song(ctx):
   await ctx.send("https://www.youtube.com/watch?v=atdO6YRg5Cw")
 
-@bot.event
-async def on_message(message):
-  if "meow" in message.content:
-    if message.author.id != bot.user.id:
-      await message.channel.send("meow :3")
+@bot.command(help="either nothing happens, or you get muted")
+async def gambling(ctx):
+  coinflip = random.randint(1, 2)
+  if coinflip == 1:
+    id = str(ctx.author.id)
+    with open("stupid.json", "r") as f:
+      idiots = json.load(f);
+    if id in idiots:
+      idiots[id] += 1
+    else:
+      idiots[id] = 1
+    with open("stupid.json", "w") as f:
+      json.dump(idiots, f)
+    await ctx.author.timeout_for(timedelta(hours=1), reason="gambling")
+    await ctx.reply("rip bozo")
+  else:
+    await ctx.reply("you get to live another day!")
+
+@bot.command(help="show the top idiots in the server")
+async def top(ctx):
+  with open("stupid.json", "r") as f:
+    idiots = json.load(f);
+  idiots_sorted = sorted(idiots.items(), key=lambda item: item[1], reverse=True)
+  text = ""
+  description = ""
+  for i, (user_id, hours) in enumerate(idiots_sorted, start=1):
+    description += f"**#{i}** <@{user_id}> — {hours} hour(s) muted\n"
+  embed = discord.Embed(title="top idiots", color=0xff91ff)
+  embed.description = description
+  await ctx.reply(embed=embed, allowed_mentions=discord.AllowedMentions(users=False))
+  
 
 bot.run(token)
