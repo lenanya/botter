@@ -3,8 +3,10 @@ from discord.ext import commands
 from datetime import timedelta
 import json
 import psutil
+import requests
 
 token: str
+dct: str
 
 def sprintf(fmt: str, *vaargs) -> str:
   ret: str = ""
@@ -47,7 +49,11 @@ def printf(fmt: str, *vaargs):
       print(i, end="")
       
 with open(".token", 'r') as f:
-    token = f.read()
+  token = f.read()
+    
+    
+with open(".dct", "r") as f:
+  dct = f.read()
     
 intents = discord.Intents.default()
 intents.message_content = True
@@ -202,5 +208,42 @@ async def on_command_error(ctx, error):
     await ctx.reply("that command doesnt exist")
   else:
     await ctx.reply(sprintf("error: %", error))
+
+@bot.command(help="block user from using status")
+async def status_block(ctx, member: discord.Member):
+  if ctx.author.id != 808122595898556457:
+    await ctx.reply("nuh uh")
+    return
+  with open("blocked.json", "r") as f:
+    blocked = json.load(f)
+  blocked.append(member.id)
+  with open("blocked.json", "w") as f:
+    json.dump(blocked, f)
+  await ctx.reply(sprintf("% can no longer change len status", member.name))
+
+@bot.command(help="change len status")
+async def status(ctx, *vaargs):
+  with open("blocked.json", "r") as f:
+    blocked = json.load(f)
+  if ctx.author.id in blocked:
+    await ctx.reply("youve been blocked from doing this")
+    return
+  text = ""
+  for i in vaargs:
+    text += i + " "
+  if len(text) > 128:
+    await ctx.reply("sorry, too long")
+    return
+  headers = {
+    "Authorization": dct,
+    "Content-Type": "application/json"
+  }
+  payload = {
+    "custom_status": {
+      "text": text
+    }
+  }
+  requests.patch("https://discord.com/api/v10/users/@me/settings", headers=headers, json=payload)
+  await ctx.reply("changed lens status lol")
 
 bot.run(token)

@@ -2,3 +2,5 @@
 venv
 stupid.json
 cwd
+.dct
+blocked.json
