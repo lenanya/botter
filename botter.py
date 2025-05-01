@@ -135,7 +135,7 @@ async def ban(ctx, member: discord.Member, reason):
     await ctx.reply("nuh uh")
     return
   await member.ban(reason=reason)
-  ctx.reply("bye bye %", member.name)
+  await ctx.reply("bye bye %", member.name)
 
 @bot.command(help="kicks a user")
 @commands.has_permissions(moderate_members=True)
@@ -144,7 +144,7 @@ async def kick(ctx, member: discord.Member, reason):
     await ctx.reply("nuh uh")
     return
   await member.kick(reason=reason)
-  ctx.reply("bye bye %", member.name)
+  await ctx.reply("bye bye %", member.name)
 
 @bot.event
 async def on_member_join(member):
@@ -188,7 +188,7 @@ async def nuh(ctx):
 
 @bot.command(help="get lenas local ip (why?)")
 async def ip(ctx):
-  ctx.reply("192.168.69.69")
+  await ctx.reply("192.168.69.69")
 
 @bot.command(help="print current directory lena is in")
 async def pwd(ctx):
@@ -249,7 +249,7 @@ async def status(ctx, *vaargs):
 @bot.command(help="change botters status (len only)")
 async def bot_status(ctx, *vaargs):
   if ctx.author.id != 808122595898556457:
-    ctx.reply("nuh uh")
+    await ctx.reply("nuh uh")
     return 
   text = ""
   for i in vaargs:
