@@ -380,7 +380,7 @@ async def on_message(message: discord.Message):
     await message.reply("uwu")
   elif ":3" in message.content:
     await message.reply(":3")
-  elif "car" in message.content.lower():
+  elif "car " in message.content.lower() or message.content.lower() == "car":
     await message.reply("hiii that me :3")
 
 @bot.slash_command(name="car", description="car")
@@ -422,6 +422,9 @@ async def check_reminders():
 @bot.slash_command(name="megagambling" ,description="either nothing happens, or you get muted for very long")
 async def megagambling(ctx: discord.ApplicationContext, stake: int):
   printf("% used command megagambling\n", ctx.author.global_name)
+  if stake > 24:
+    ctx.respond(sprintf("% is too large, the maximum is 24h", stake))
+    return
   timeout = random.randint(0, stake)
   if timeout != 0:
     id = str(ctx.author.id)
