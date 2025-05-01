@@ -366,7 +366,6 @@ async def reminder(ctx: discord.ApplicationContext, message: str, days: int = 0,
 
 @tasks.loop(seconds=10)
 async def check_reminders():
-  printf("Checking reminders\n")
   with open("reminders.json", "r") as f:
     reminders = json.load(f)
   for i in range(len(reminders)):
