@@ -7,8 +7,7 @@ import requests
 import random
 from google import genai
 from time import time
-from PIL import Image 
-from io import BytesIO
+from sys import argv
 
 token: str
 dct: str
@@ -61,6 +60,11 @@ with open(".dct", "r") as f:
 
 with open(".gemini", "r") as f:
   gemini_api_key = f.read()
+
+do_hello = True
+
+if len(argv) > 1:
+  do_hello = False
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -134,7 +138,8 @@ async def are_you_gay(ctx: discord.ApplicationContext):
 @bot.event
 async def on_ready():
   printf("logged in as % (%)\n", bot.user.name, bot.user.id)
-  await bot.get_channel(1367249503593168978).send("hi chat i got restarted :3")
+  if do_hello:
+    await bot.get_channel(1367249503593168978).send("hi chat i got restarted :3")
   await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="all of you"))
   check_reminders.start()
 
@@ -367,12 +372,14 @@ async def ai(ctx: discord.ApplicationContext, text):
 async def on_message(message: discord.Message):
   if message.author.id == bot.user.id:
     return
-  if "meow" in message.content:
+  if "meow" in message.content.lower():
     await message.reply("meow :3")
-  elif "good bot" in message.content:
+  elif "good bot" in message.content.lower():
     await message.reply("uwu")
   elif ":3" in message.content:
     await message.reply(":3")
+  elif "car" in message.content.lower():
+    await message.reply("hiii that me :3")
 
 @bot.slash_command(name="car", description="car")
 async def car(ctx: discord.ApplicationContext):
