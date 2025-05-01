@@ -333,6 +333,13 @@ async def ai(ctx, *vaargs):
     model="gemini-2.0-flash",
     contents=prompt+text+"</UserPrompt>"
   )
-  await ctx.reply(response.text)
+  if len(response.text) < 2000: 
+    await ctx.reply(response.text)
+  else:
+    await ctx.reply("gemini responded with more than 2000 characters, this might not work lol")
+    index = 0
+    while index < len(response.text):
+      await ctx.reply(response.text[index:index+2000])
+      index += 2000
 
 bot.run(token)
