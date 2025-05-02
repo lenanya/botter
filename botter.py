@@ -52,7 +52,7 @@ def printf(fmt: str, *vaargs):
     else:
       print(i, end="")
       
-with open(".token", 'r') as f:
+with open(".token", 'r') as f: #TODO: replace with env file or sumn
   token = f.read()
     
 with open(".dct", "r") as f:
@@ -63,7 +63,7 @@ with open(".gemini", "r") as f:
 
 do_hello = True
 
-if len(argv) > 1:
+if len(argv) > 1: #TODO: parse flags properly (at all)
   do_hello = False
 
 intents = discord.Intents.default()
@@ -80,7 +80,7 @@ async def mute_me(ctx: discord.ApplicationContext):
   printf("% used command mute_me\n", ctx.author.global_name)
   try:
     await ctx.author.timeout_for(timedelta(hours=1), reason="self inflicted")
-  except Exception:
+  except Exception: #TODO: better error handling
     await ctx.respond("cant time yourself out in dms dummy")
     return
   id = str(ctx.author.id)
@@ -99,7 +99,7 @@ async def stupid(ctx: discord.ApplicationContext):
   printf("% used command stupid\n", ctx.author.global_name)
   id = str(ctx.author.id)
   with open("stupid.json", "r") as f:
-    idiots = json.load(f)
+    idiots = json.load(f) #TODO: make embed
   if id in idiots:
     await ctx.respond(sprintf("uve muted urself for % hours total, idiot", idiots[id]))
   else:
@@ -113,7 +113,7 @@ async def echo(ctx: discord.ApplicationContext, text: str):
 @bot.slash_command(name="kys", description="murders botter (len only)")
 async def kys(ctx: discord.ApplicationContext):
   printf("% used command kys\n", ctx.author.global_name)
-  if ctx.author.id != 808122595898556457:
+  if ctx.author.id != 808122595898556457: #TODO: factor out
     await ctx.respond("nuh uh")
     return
   await ctx.respond("k bye")
@@ -125,7 +125,7 @@ async def id(ctx: discord.ApplicationContext):
   await ctx.respond(ctx.author.id)
   
 @bot.slash_command(name="ping", description="shows the bots latency")
-async def ping(ctx: discord.ApplicationContext):
+async def ping(ctx: discord.ApplicationContext): #TODO: wording
   printf("% used command ping\n", ctx.author.global_name)
   await ctx.respond(sprintf("this took %ms to send", round(bot.latency * 1000, 1)))
 
@@ -142,7 +142,7 @@ async def are_you_gay(ctx: discord.ApplicationContext):
 @bot.event
 async def on_ready():
   printf("logged in as % (%)\n", bot.user.name, bot.user.id)
-  if do_hello:
+  if do_hello: #TODO: factor out
     await bot.get_channel(1367249503593168978).send("hi chat i got restarted :3")
   await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="all of you"))
   check_reminders.start()
@@ -154,7 +154,7 @@ async def predicate(ctx: discord.ApplicationContext):
   return any(role >= required_role for role in ctx.author.roles)
 
 @bot.slash_command(name="ban" ,description="bans a user")
-@commands.has_permissions(moderate_members=True)
+@commands.has_permissions(moderate_members=True) #TODO: only allow in guild
 async def ban(ctx: discord.ApplicationContext, member: discord.Member, reason: str):
   printf("% used command ban\n", ctx.author.global_name)
   if not commands.check(predicate):
@@ -164,7 +164,7 @@ async def ban(ctx: discord.ApplicationContext, member: discord.Member, reason: s
   await ctx.respond("bye bye %", member.name)
 
 @bot.slash_command(name="kick" ,description="kicks a user")
-@commands.has_permissions(moderate_members=True)
+@commands.has_permissions(moderate_members=True) #TODO: only allow in guild
 async def kick(ctx: discord.ApplicationContext, member: discord.Member, reason: str):
   printf("% used command kick\n", ctx.author.global_name)
   if not commands.check(predicate):
@@ -175,8 +175,8 @@ async def kick(ctx: discord.ApplicationContext, member: discord.Member, reason: 
 
 @bot.event
 async def on_member_join(member: discord.Member):
-  role = discord.utils.get(member.guild.roles, name="humans, probably")
-  await member.add_roles(role)
+  role = discord.utils.get(member.guild.roles, name="humans, probably") #TODO: factor out rolename
+  await member.add_roles(role) #TODO: factor out channel
   await bot.get_channel(1367249503593168978).send(sprintf("new member: <@%>, hiiii :3", member.id))
 
 @bot.slash_command(name="cpu" ,description="cpu load on len computer")
@@ -208,7 +208,7 @@ async def os(ctx: discord.ApplicationContext):
   printf("% used command os\n", ctx.author.global_name)
   with open("/home/lena/arch_logo", 'r') as f:
     logo = f.read()
-  await ctx.respond(sprintf("```\n%\n```", logo.replace("`", "'")))
+  await ctx.respond(sprintf("```\n%\n```", logo.replace("`", "'"))) #TODO: fix
 
 @bot.slash_command(name="source" ,description="give botter source code")
 async def source(ctx: discord.ApplicationContext):
@@ -217,13 +217,13 @@ async def source(ctx: discord.ApplicationContext):
   
 @bot.slash_command(name="nuh" ,description="nuh uh")
 async def nuh(ctx: discord.ApplicationContext):
-  printf("% used command nuh\n", ctx.author.global_name)
+  printf("% used command nuh\n", ctx.author.global_name) #TODO: factor out/replace with local file
   await ctx.respond("https://cdn.discordapp.com/attachments/1306832831988629528/1362111230155952188/car-garn47-397016279.gif?ex=6813a970&is=681257f0&hm=553b8456e1933ef8dba2be7e789e1dbea3475e3f5e44697c08c5a45d34ef5692&")
 
 @bot.slash_command(name="ip" ,description="get lenas local ip (why?)")
 async def ip(ctx: discord.ApplicationContext):
   printf("% used command ip\n", ctx.author.global_name)
-  await ctx.respond("192.168.69.69")
+  await ctx.respond("192.168.69.69") # why
 
 @bot.slash_command(name="pwd" ,description="print current directory lena is in")
 async def pwd(ctx: discord.ApplicationContext):
@@ -235,9 +235,9 @@ async def pwd(ctx: discord.ApplicationContext):
 @bot.slash_command(name="temperature" ,description="len room temperature")
 async def temperature(ctx: discord.ApplicationContext):
   printf("% used command temperature\n", ctx.author.global_name)
-  with open("/var/www/arduino/temp", "r") as f:
+  with open("/var/www/arduino/temp", "r") as f: #TODO: factor out
     temp = f.read() + "°C"
-  await ctx.respond(sprintf("lens room is % rn", temp))
+  await ctx.respond(sprintf("lens room is % rn", temp)) #TODO: add fahrenheit?
   
 @bot.event
 async def on_command_error(ctx: discord.ApplicationContext, error):
@@ -249,7 +249,7 @@ async def on_command_error(ctx: discord.ApplicationContext, error):
 @bot.slash_command(name="status_block" ,description="block user from using status (len only)")
 async def status_block(ctx: discord.ApplicationContext, member: discord.Member):
   printf("% used command status_block\n", ctx.author.global_name)
-  if ctx.author.id != 808122595898556457:
+  if ctx.author.id != 808122595898556457: #TODO: factor out
     await ctx.respond("nuh uh")
     return
   with open("blocked.json", "r") as f:
@@ -277,7 +277,7 @@ async def status(ctx: discord.ApplicationContext, text: str):
   if len(text) > 128:
     await ctx.respond("sorry, too long")
     return
-  headers = {
+  headers = { #TODO: make this a function
     "Authorization": dct,
     "Content-Type": "application/json"
   }
@@ -297,7 +297,7 @@ async def status(ctx: discord.ApplicationContext, text: str):
 @bot.slash_command(name="bot_status" ,description="change botters status (len only)")
 async def bot_status(ctx: discord.ApplicationContext, text: str):
   printf("% used command bot_status\n", ctx.author.global_name)
-  if ctx.author.id != 808122595898556457:
+  if ctx.author.id != 808122595898556457: #TODO: factor out
     await ctx.respond("nuh uh")
     return 
   await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name=text))
@@ -313,9 +313,9 @@ async def gambling(ctx: discord.ApplicationContext):
   printf("% used command gambling\n", ctx.author.global_name)
   coinflip = random.randint(1, 2)
   if coinflip == 1:
-    try:
+    try: 
       await ctx.author.timeout_for(timedelta(hours=1), reason="gambling")
-    except Exception:
+    except Exception: #TODO: better error handling
       await ctx.respond("cant time yourself out in dms dummy")
       return
     id = str(ctx.author.id)
@@ -364,33 +364,31 @@ prompt = """
   
 @bot.slash_command(name="ai" ,description="talk to botter")
 async def ai(ctx: discord.ApplicationContext, text: str):
-  printf("% used command ai\n", ctx.author.global_name)
+  printf("% used command ai\n", ctx.author.global_name) #TODO: format
   full_prompt = prompt + "the user who prompted you: " + ctx.author.global_name + "</Information><UserPrompt>" + text + "</UserPrompt>"
-    
   response = client.models.generate_content(
     model="gemini-2.0-flash",
     contents=full_prompt
   )
-  
   embed: discord.Embed = discord.Embed(title=text, color=0xff91ff)
   embed.description = response.text
-   
   await ctx.respond(embed=embed)
 
 @bot.event
 async def on_message(message: discord.Message):
   if message.author.id == bot.user.id:
     return
-  if "meow" in message.content.lower():
+  if "car " in message.content.lower() or message.content.lower() == "car": #TODO: fix detection
+    await message.reply("hiii that me :3")
+  elif "meow" in message.content.lower():
     await message.reply("meow :3")
   elif "good bot" in message.content.lower():
     await message.reply("uwu")
   elif ":3" in message.content:
     await message.reply(":3")
-  elif "car " in message.content.lower() or message.content.lower() == "car":
-    await message.reply("hiii that me :3")
+  
 
-@bot.slash_command(name="car", description="car")
+@bot.slash_command(name="car", description="car") #TODO: fix monospace issue
 async def car(ctx: discord.ApplicationContext):
   printf("% used command car\n", ctx.author.global_name)
   embed: discord.Embed = discord.Embed(title="car", color=0xff91ff)
@@ -399,12 +397,12 @@ async def car(ctx: discord.ApplicationContext):
   embed.description = car
   await ctx.respond(embed=embed)
 
-@bot.slash_command(name="reminder", description="create a reminder")
+@bot.slash_command(name="reminder", description="create a reminder") #TODO: add support for timestamps
 async def reminder(ctx: discord.ApplicationContext, message: str, days: int = 0,hours: int = 0, minutes: int = 5):
   printf("% used command reminder\n", ctx.author.global_name)
   with open("reminders.json", "r") as f:
     reminders = json.load(f)
-  when = int(time()) + days * 86400 + hours * 3600 + minutes * 60
+  when = int(time()) + days * 86400 + hours * 3600 + minutes * 60 #TODO: factor out
   reminders.append({
     "user_id": str(ctx.author.id),
     "when": when,
@@ -432,7 +430,7 @@ async def check_reminders():
 @bot.slash_command(name="megagambling" ,description="either nothing happens, or you get muted for very long")
 async def megagambling(ctx: discord.ApplicationContext, stake: int):
   printf("% used command megagambling\n", ctx.author.global_name)
-  if stake > 24:
+  if stake > 24: #TODO: stake < 1 
     await ctx.respond(sprintf("% is too large, the maximum is 24h", stake))
     return
   timeout = random.randint(0, stake)
@@ -456,3 +454,13 @@ async def megagambling(ctx: discord.ApplicationContext, stake: int):
     await ctx.respond("you get to live another day")
  
 bot.run(token)
+
+#TODO: switch to embeds
+#TODO: leveling system (+ gambling ofc)
+#TODO: fix car detection
+#TODO: better error handling 
+#TODO: switch to a database instead of json files
+#TODO: show reminders
+#TODO: delete reminders
+#TODO: normal timeout command for mods
+#TODO: message logging
