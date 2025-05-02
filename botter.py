@@ -106,7 +106,7 @@ async def stupid(ctx: discord.ApplicationContext):
     await ctx.respond("u havent muted urself, good job")
 
 @bot.slash_command(name="echo", description="makes the bot say things")
-async def echo(ctx: discord.ApplicationContext, text):
+async def echo(ctx: discord.ApplicationContext, text: str):
   printf("% used command echo\n", ctx.author.global_name)
   await ctx.send(text)
 
@@ -155,7 +155,7 @@ async def predicate(ctx: discord.ApplicationContext):
 
 @bot.slash_command(name="ban" ,description="bans a user")
 @commands.has_permissions(moderate_members=True)
-async def ban(ctx: discord.ApplicationContext, member: discord.Member, reason):
+async def ban(ctx: discord.ApplicationContext, member: discord.Member, reason: str):
   printf("% used command ban\n", ctx.author.global_name)
   if not commands.check(predicate):
     await ctx.respond("nuh uh")
@@ -165,7 +165,7 @@ async def ban(ctx: discord.ApplicationContext, member: discord.Member, reason):
 
 @bot.slash_command(name="kick" ,description="kicks a user")
 @commands.has_permissions(moderate_members=True)
-async def kick(ctx: discord.ApplicationContext, member: discord.Member, reason):
+async def kick(ctx: discord.ApplicationContext, member: discord.Member, reason: str):
   printf("% used command kick\n", ctx.author.global_name)
   if not commands.check(predicate):
     await ctx.respond("nuh uh")
@@ -174,10 +174,10 @@ async def kick(ctx: discord.ApplicationContext, member: discord.Member, reason):
   await ctx.respond("bye bye %", member.name)
 
 @bot.event
-async def on_member_join(member):
+async def on_member_join(member: discord.Member):
   role = discord.utils.get(member.guild.roles, name="humans, probably")
   await member.add_roles(role)
-  await bot.get_channel(1367249503593168978).send(sprintf("new member: %, hiiii :3", member.name))
+  await bot.get_channel(1367249503593168978).send(sprintf("new member: %, hiiii :3", member.global_name))
 
 @bot.slash_command(name="cpu" ,description="cpu load on len computer")
 async def cpu(ctx: discord.ApplicationContext):
@@ -260,7 +260,7 @@ async def status_block(ctx: discord.ApplicationContext, member: discord.Member):
   await ctx.respond(sprintf("% can no longer change len status", member.name))
 
 @bot.slash_command(name="status" ,description="change len status")
-async def status(ctx: discord.ApplicationContext, text):
+async def status(ctx: discord.ApplicationContext, text: str):
   printf("% used command status\n", ctx.author.global_name)
   with open("blocked.json", "r") as f:
     blocked = json.load(f)
@@ -363,7 +363,7 @@ prompt = """
 """
   
 @bot.slash_command(name="ai" ,description="talk to botter")
-async def ai(ctx: discord.ApplicationContext, text):
+async def ai(ctx: discord.ApplicationContext, text: str):
   printf("% used command ai\n", ctx.author.global_name)
   full_prompt = prompt + "the user who prompted you: " + ctx.author.name + "</Information><UserPrompt>" + text + "</UserPrompt>"
     
