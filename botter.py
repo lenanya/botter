@@ -101,7 +101,7 @@ async def mute_me(ctx: discord.ApplicationContext):
   try:
     await ctx.author.timeout_for(timedelta(hours=1), reason="self inflicted")
   except Exception as e: #TODO: better error handling
-    printf("%", e)
+    printf("%\n", e)
     await ctx.respond("cant time yourself out in dms dummy")
     return
   id = str(ctx.author.id)
@@ -405,7 +405,7 @@ async def gambling(ctx: discord.ApplicationContext):
   printf("% used command gambling\n", ctx.author.global_name)
   embed: discord.Embed = discord.Embed(title="Lets go gambling!", color=0xff91ff)
   if not isinstance(ctx.author, discord.Member):
-    embed.description = "cant time yourself out in dms dummy"
+    embed.description = "cant use this in dms dummy"
     embed.color = 0xff0000
     await ctx.respond(embed=embed)
     return
@@ -608,7 +608,7 @@ async def megagambling(ctx: discord.ApplicationContext, stake: int):
     try:
       await ctx.author.timeout_for(timedelta(hours=timeout), reason="megagambling")
     except Exception as e:
-      printf("%", e)
+      printf("%\n", e)
       embed.description = "cant time yourself out in dms dummy"
       embed.color = 0xff0000
       await ctx.respond(embed=embed)
