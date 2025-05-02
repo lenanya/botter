@@ -412,10 +412,13 @@ async def reminder(ctx: discord.ApplicationContext, message: str, days: int = 0,
 async def check_reminders():
   with open("reminders.json", "r") as f:
     reminders = json.load(f)
-  for i in range(len(reminders)):
-    if reminders[i]['when'] < time():
-      await bot.get_channel(reminders[i]['channel']).send(sprintf("<@%> Reminder: `%`", reminders[i]['user_id'], reminders[i]['message']))
-      reminders.pop(i)
+  for idx, i in enumerate(reminders):
+    if i['when'] < time():
+      channel = bot.get_channel(i['channel'])
+      if not channel:
+        channel = bot.get_channel(1367249503593168978) # default to general
+      await channel.send(sprintf("<@%> Reminder: `%`", i['user_id'], i['message']))
+      reminders.pop(idx)
   with open("reminders.json", "w") as f:
     json.dump(reminders, f)
 
@@ -423,7 +426,7 @@ async def check_reminders():
 async def megagambling(ctx: discord.ApplicationContext, stake: int):
   printf("% used command megagambling\n", ctx.author.global_name)
   if stake > 24:
-    ctx.respond(sprintf("% is too large, the maximum is 24h", stake))
+    await ctx.respond(sprintf("% is too large, the maximum is 24h", stake))
     return
   timeout = random.randint(0, stake)
   if timeout != 0:
