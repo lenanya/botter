@@ -78,7 +78,11 @@ client = genai.Client(api_key=gemini_api_key)
 @bot.slash_command(name="mute_me", description="lets u time yourself out for an hour")
 async def mute_me(ctx: discord.ApplicationContext):
   printf("% used command mute_me\n", ctx.author.global_name)
-  await ctx.author.timeout_for(timedelta(hours=1), reason="self inflicted")
+  try:
+    await ctx.author.timeout_for(timedelta(hours=1), reason="self inflicted")
+  except Exception:
+    await ctx.respond("cant time yourself out in dms dummy")
+    return
   id = str(ctx.author.id)
   with open("stupid.json", "r") as f:
     idiots = json.load(f);
@@ -309,7 +313,11 @@ async def gambling(ctx: discord.ApplicationContext):
   printf("% used command gambling\n", ctx.author.global_name)
   coinflip = random.randint(1, 2)
   if coinflip == 1:
-    await ctx.author.timeout_for(timedelta(hours=1), reason="gambling")
+    try:
+      await ctx.author.timeout_for(timedelta(hours=1), reason="gambling")
+    except Exception:
+      await ctx.respond("cant time yourself out in dms dummy")
+      return
     id = str(ctx.author.id)
     with open("stupid.json", "r") as f:
       idiots = json.load(f);
@@ -329,7 +337,6 @@ async def top(ctx: discord.ApplicationContext):
   with open("stupid.json", "r") as f:
     idiots = json.load(f);
   idiots_sorted = sorted(idiots.items(), key=lambda item: item[1], reverse=True)
-  text = ""
   description = ""
   for i, (user_id, hours) in enumerate(idiots_sorted, start=1):
     description += f"**#{i}** <@{user_id}> — {hours} hour(s) muted\n"
@@ -430,7 +437,11 @@ async def megagambling(ctx: discord.ApplicationContext, stake: int):
     return
   timeout = random.randint(0, stake)
   if timeout != 0:
-    await ctx.author.timeout_for(timedelta(hours=timeout), reason="megagambling")
+    try:
+      await ctx.author.timeout_for(timedelta(hours=timeout), reason="megagambling")
+    except Exception:
+      await ctx.respond("cant time yourself out in dms dummy")
+      return
     id = str(ctx.author.id)
     with open("stupid.json", "r") as f:
       idiots = json.load(f);
@@ -440,7 +451,7 @@ async def megagambling(ctx: discord.ApplicationContext, stake: int):
       idiots[id] = timeout
     with open("stupid.json", "w") as f:
       json.dump(idiots, f)
-    await ctx.respond(sprintf("ur muted for %h now, rip bozo", timeout))
+    await ctx.respond(sprintf("ur muted for %h now, rip bozo (stake: %)", timeout, stake))
   else:
     await ctx.respond("you get to live another day")
  
