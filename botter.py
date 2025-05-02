@@ -177,7 +177,7 @@ async def kick(ctx: discord.ApplicationContext, member: discord.Member, reason: 
 async def on_member_join(member: discord.Member):
   role = discord.utils.get(member.guild.roles, name="humans, probably")
   await member.add_roles(role)
-  await bot.get_channel(1367249503593168978).send(sprintf("new member: %, hiiii :3", member.global_name))
+  await bot.get_channel(1367249503593168978).send(sprintf("new member: <@%>, hiiii :3", member.id))
 
 @bot.slash_command(name="cpu" ,description="cpu load on len computer")
 async def cpu(ctx: discord.ApplicationContext):
@@ -365,7 +365,7 @@ prompt = """
 @bot.slash_command(name="ai" ,description="talk to botter")
 async def ai(ctx: discord.ApplicationContext, text: str):
   printf("% used command ai\n", ctx.author.global_name)
-  full_prompt = prompt + "the user who prompted you: " + ctx.author.name + "</Information><UserPrompt>" + text + "</UserPrompt>"
+  full_prompt = prompt + "the user who prompted you: " + ctx.author.global_name + "</Information><UserPrompt>" + text + "</UserPrompt>"
     
   response = client.models.generate_content(
     model="gemini-2.0-flash",
