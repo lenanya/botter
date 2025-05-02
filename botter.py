@@ -9,6 +9,9 @@ from google import genai
 from time import time
 from sys import argv
 
+lena: int = 808122595898556457
+general: int = 1367249503593168978
+
 token: str
 dct: str
 
@@ -80,7 +83,8 @@ async def mute_me(ctx: discord.ApplicationContext):
   printf("% used command mute_me\n", ctx.author.global_name)
   try:
     await ctx.author.timeout_for(timedelta(hours=1), reason="self inflicted")
-  except Exception: #TODO: better error handling
+  except Exception as e: #TODO: better error handling
+    printf("%", e)
     await ctx.respond("cant time yourself out in dms dummy")
     return
   id = str(ctx.author.id)
@@ -92,18 +96,23 @@ async def mute_me(ctx: discord.ApplicationContext):
     idiots[id] = 1
   with open("stupid.json", "w") as f:
     json.dump(idiots, f)
-  await ctx.respond("congrats, you timed yourself out for an hour, dumbass")
+  embed: discord.Embed = discord.Embed(title="congrats", color=0xff91ff)
+  embed.description = "you timed yourself out for an hour, dumbass"
+  await ctx.respond(embed=embed)
 
 @bot.slash_command(name="stupid", description="shows how many times uve muted urrself")
 async def stupid(ctx: discord.ApplicationContext):
   printf("% used command stupid\n", ctx.author.global_name)
   id = str(ctx.author.id)
   with open("stupid.json", "r") as f:
-    idiots = json.load(f) #TODO: make embed
+    idiots = json.load(f)
+  embed: discord.Embed = discord.Embed(title="stupid", color=0xff91ff)
   if id in idiots:
-    await ctx.respond(sprintf("uve muted urself for % hours total, idiot", idiots[id]))
+    embed.color = 0xff0000
+    embed.description = sprintf("uve muted urself for % hours total, idiot", idiots[id])
   else:
-    await ctx.respond("u havent muted urself, good job")
+    embed.description = "u havent muted yourself, good job"
+  await ctx.respond(embed=embed)
 
 @bot.slash_command(name="echo", description="makes the bot say things")
 async def echo(ctx: discord.ApplicationContext, text: str):
@@ -113,7 +122,7 @@ async def echo(ctx: discord.ApplicationContext, text: str):
 @bot.slash_command(name="kys", description="murders botter (len only)")
 async def kys(ctx: discord.ApplicationContext):
   printf("% used command kys\n", ctx.author.global_name)
-  if ctx.author.id != 808122595898556457: #TODO: factor out
+  if ctx.author.id != lena: 
     await ctx.respond("nuh uh")
     return
   await ctx.respond("k bye")
@@ -122,28 +131,35 @@ async def kys(ctx: discord.ApplicationContext):
 @bot.slash_command(name="id", description="returns your id")
 async def id(ctx: discord.ApplicationContext):
   printf("% used command id\n", ctx.author.global_name)
-  await ctx.respond(ctx.author.id)
+  embed: discord.Embed = discord.Embed(title="id", color=0xff91ff)
+  embed.description = str(ctx.author.id)
+  await ctx.respond(embed=embed)
   
 @bot.slash_command(name="ping", description="shows the bots latency")
 async def ping(ctx: discord.ApplicationContext): #TODO: wording
   printf("% used command ping\n", ctx.author.global_name)
-  await ctx.respond(sprintf("this took %ms to send", round(bot.latency * 1000, 1)))
+  embed: discord.Embed = discord.Embed(title="ping", color=0xff91ff)
+  embed.description = sprintf("this took %ms to send", round(bot.latency * 1000, 1))
+  await ctx.respond(embed=embed)
 
 @bot.slash_command(name="am_i_gay" ,description="tells you if you are gay")
 async def am_i_gay(ctx: discord.ApplicationContext):
   printf("% used command am_i_gay\n", ctx.author.global_name)
-  await ctx.respond("yes")
+  embed: discord.Embed = discord.Embed(title="yes", color=0xff91ff)
+  await ctx.respond(embed=embed)
   
 @bot.slash_command(name="are_you_gay" ,description="tells you if the bot is gay")
 async def are_you_gay(ctx: discord.ApplicationContext):
   printf("% used command are_you_gay\n", ctx.author.global_name)
-  await ctx.respond("only for <@808122595898556457>")
+  embed: discord.Embed = discord.Embed(title="maybe", color=0xff91ff)
+  embed.description = sprintf("but only for <@%", lena)
+  await ctx.respond(embed=embed)
 
 @bot.event
 async def on_ready():
   printf("logged in as % (%)\n", bot.user.name, bot.user.id)
-  if do_hello: #TODO: factor out
-    await bot.get_channel(1367249503593168978).send("hi chat i got restarted :3")
+  if do_hello:
+    await bot.get_channel(general).send("hi chat i got restarted :3")
   await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="all of you"))
   check_reminders.start()
 
@@ -157,125 +173,172 @@ async def predicate(ctx: discord.ApplicationContext):
 @commands.has_permissions(moderate_members=True) #TODO: only allow in guild
 async def ban(ctx: discord.ApplicationContext, member: discord.Member, reason: str):
   printf("% used command ban\n", ctx.author.global_name)
+  embed: discord.Embed = discord.Embed(title=sprintf("ban %", member.global_name), color=0xff91ff)
   if not commands.check(predicate):
-    await ctx.respond("nuh uh")
+    embed.description = "nuh uh"
+    embed.color = 0xff0000
+    await ctx.respond(embed=embed)
     return
   await member.ban(reason=reason)
-  await ctx.respond("bye bye %", member.name)
+  embed.description = "bye bye"
+  await ctx.respond(embed=embed)
 
 @bot.slash_command(name="kick" ,description="kicks a user")
 @commands.has_permissions(moderate_members=True) #TODO: only allow in guild
 async def kick(ctx: discord.ApplicationContext, member: discord.Member, reason: str):
   printf("% used command kick\n", ctx.author.global_name)
+  embed: discord.Embed = discord.Embed(title=sprintf("kick %", member.global_name), color=0xff91ff)
   if not commands.check(predicate):
-    await ctx.respond("nuh uh")
+    embed.description = "nuh uh"
+    embed.color = 0xff0000
+    await ctx.respond(embed=embed)
     return
   await member.kick(reason=reason)
-  await ctx.respond("bye bye %", member.name)
+  embed.description = "bye bye"
+  await ctx.respond(embed=embed)
+
+default_role: str = "humans, probably"
 
 @bot.event
 async def on_member_join(member: discord.Member):
-  role = discord.utils.get(member.guild.roles, name="humans, probably") #TODO: factor out rolename
-  await member.add_roles(role) #TODO: factor out channel
-  await bot.get_channel(1367249503593168978).send(sprintf("new member: <@%>, hiiii :3", member.id))
+  role = discord.utils.get(member.guild.roles, name=default_role)
+  await member.add_roles(role)
+  await bot.get_channel(general).send(sprintf("new member: <@%>, hiiii :3", member.id))
 
 @bot.slash_command(name="cpu" ,description="cpu load on len computer")
 async def cpu(ctx: discord.ApplicationContext):
   printf("% used command cpu\n", ctx.author.global_name)
   cpu_load = psutil.cpu_percent(interval=1)
-  await ctx.respond(sprintf("len cpu is at %|%", cpu_load))
+  embed: discord.Embed = discord.Embed(title="cpu", color=0xff91ff)
+  embed.description = sprintf("len cpu is at %|%", cpu_load)
+  await ctx.respond(embed=embed)
 
 @bot.slash_command(name="mem" ,description="ram on len computer")
 async def mem(ctx: discord.ApplicationContext):
   printf("% used command mem\n", ctx.author.global_name)
   mem = psutil.virtual_memory()
-  await ctx.respond(sprintf("%GiB of %GiB ram used rn", round(mem.used / (1024**3), 2), round(mem.total / (1024**3), 2)))
+  embed: discord.Embed = discord.Embed(title="memory", color=0xff91ff)
+  mem_used = round(mem.used / (1024**3), 2)
+  mem_total = round(mem.total / (1024**3))
+  embed.description = sprintf("%GiB of %GiB ram used rn", mem_used, mem_total)
+  await ctx.respond(embed=embed)
 
 @bot.slash_command(name="membytes" ,description="ram usage in bytes for some reason")
 async def membytes(ctx: discord.ApplicationContext):
   printf("% used command membytes\n", ctx.author.global_name)
   mem = psutil.virtual_memory()
-  await ctx.respond(sprintf("%B of %B ram used rn", mem.used, mem.total))
+  embed: discord.Embed = discord.Embed(title="memory in bytes", color=0xff91ff)
+  embed.description = sprintf("% Bytes of % Bytes ram used rn", mem.used, mem.total)
+  await ctx.respond(embed=embed)
 
 @bot.slash_command(name="disk" ,description="shows len root partition space")
 async def disk(ctx: discord.ApplicationContext):
   printf("% used command disk\n", ctx.author.global_name)
   disk = psutil.disk_usage("/")
-  await ctx.respond(sprintf("%GiB free of %GiB", (disk.total - disk.used) // (1024**3), disk.total // (1024**3)))
+  embed: discord.Embed = discord.Embed(title="disk usage", color=0xff91ff)
+  disk_free = (disk.total - disk.used) // (1024**3)
+  disk_total = disk.total // (1024**3)
+  embed.description = sprintf("%GiB free of %GiB", disk_free, disk_total)
+  await ctx.respond(embed=embed)
 
 @bot.slash_command(name="os" ,description="shows len OS")
 async def os(ctx: discord.ApplicationContext):
   printf("% used command os\n", ctx.author.global_name)
   with open("/home/lena/arch_logo", 'r') as f:
     logo = f.read()
-  await ctx.respond(sprintf("```\n%\n```", logo.replace("`", "'"))) #TODO: fix
+  embed: discord.Embed = discord.Embed(title="OS", color=0xff91ff)
+  embed.description = sprintf("```\n%\n```", logo.replace("`", "'"))
+  await ctx.respond(embed=embed)
 
 @bot.slash_command(name="source" ,description="give botter source code")
 async def source(ctx: discord.ApplicationContext):
   printf("% used command source\n", ctx.author.global_name)
-  await ctx.respond("https://github.com/lenanya/botter")
+  embed: discord.Embed = discord.Embed(title="source", color=0xff91ff)
+  embed.description = "the source code of car :3"
+  embed.url = "https://github.com/lenanya/botter"
+  await ctx.respond(embed=embed)
   
 @bot.slash_command(name="nuh" ,description="nuh uh")
 async def nuh(ctx: discord.ApplicationContext):
-  printf("% used command nuh\n", ctx.author.global_name) #TODO: factor out/replace with local file
+  printf("% used command nuh\n", ctx.author.global_name)
   await ctx.respond("https://cdn.discordapp.com/attachments/1306832831988629528/1362111230155952188/car-garn47-397016279.gif?ex=6813a970&is=681257f0&hm=553b8456e1933ef8dba2be7e789e1dbea3475e3f5e44697c08c5a45d34ef5692&")
 
 @bot.slash_command(name="ip" ,description="get lenas local ip (why?)")
 async def ip(ctx: discord.ApplicationContext):
   printf("% used command ip\n", ctx.author.global_name)
-  await ctx.respond("192.168.69.69") # why
+  embed: discord.Embed = discord.Embed(title="ip", color=0xff91ff)
+  embed.description = "192.168.69.69"
+  await ctx.respond(embed=embed) # why
 
 @bot.slash_command(name="pwd" ,description="print current directory lena is in")
 async def pwd(ctx: discord.ApplicationContext):
   printf("% used command pwd\n", ctx.author.global_name)
   with open("cwd", "r") as f:
     cwd = f.read()
-  await ctx.respond(sprintf("lena is in `%`", cwd))
+  embed: discord.Embed = discord.Embed(title="current directory", color=0xff91ff)
+  embed.description = cwd
+  await ctx.respond(embed=embed)
   
 @bot.slash_command(name="temperature" ,description="len room temperature")
-async def temperature(ctx: discord.ApplicationContext):
+async def temperature(ctx: discord.ApplicationContext, fahrenheit: bool = False):
   printf("% used command temperature\n", ctx.author.global_name)
   with open("/var/www/arduino/temp", "r") as f: #TODO: factor out
-    temp = f.read() + "°C"
-  await ctx.respond(sprintf("lens room is % rn", temp)) #TODO: add fahrenheit?
+    if not fahrenheit:
+      temp = f.read() + "°C"
+    else:
+      temp = str(float(f.read()) * 1.8 + 32) + "°F"
+  embed: discord.Embed = discord.Embed(title="temperature in lens room", color=0xff91ff)
+  embed.description = sprintf("its % rn", temp)
+  await ctx.respond(embed=embed)
   
 @bot.event
 async def on_command_error(ctx: discord.ApplicationContext, error):
   if isinstance(error, commands.CommandNotFound):
     await ctx.reply("that command doesnt exist")
   else:
-    await ctx.reply(sprintf("error: %", error))
+    embed: discord.Embed = discord.Embed(title="error :(", color=0xff0000)
+    embed.description = sprintf("%", error)
+    await ctx.reply(embed=embed)
 
 @bot.slash_command(name="status_block" ,description="block user from using status (len only)")
 async def status_block(ctx: discord.ApplicationContext, member: discord.Member):
   printf("% used command status_block\n", ctx.author.global_name)
-  if ctx.author.id != 808122595898556457: #TODO: factor out
-    await ctx.respond("nuh uh")
+  embed: discord.Embed = discord.Embed(title="status block", color=0xff00000)
+  if ctx.author.id != lena: 
+    embed.description = "nuh uh"
+    await ctx.respond(embed=embed)
     return
   with open("blocked.json", "r") as f:
     blocked = json.load(f)
   blocked.append(member.id)
   with open("blocked.json", "w") as f:
     json.dump(blocked, f)
-  await ctx.respond(sprintf("% can no longer change len status", member.name))
+  embed.description = sprintf("% can no longer change len status", member.global_name)
+  await ctx.respond(embed=embed)
 
 @bot.slash_command(name="status" ,description="change len status")
 async def status(ctx: discord.ApplicationContext, text: str):
   printf("% used command status\n", ctx.author.global_name)
+  embed: discord.Embed = discord.Embed(title="change lens status", color=0xff91ff)
   with open("blocked.json", "r") as f:
     blocked = json.load(f)
   uid = str(ctx.author.id)
   if uid in blocked:
-    await ctx.respond("youve been blocked from doing this")
+    embed.description = "youve been blocked from doing this"
+    embed.color = 0xff0000
+    await ctx.respond(embed=embed)
     return
   with open("status.json", "r") as f:
     users = json.load(f)
   if uid in users:
     if users[uid] > int(time()):
-      await ctx.respond(sprintf("you can do this again <t:%:R>", users[uid]))
+      embed.description = sprintf("you can do this again <t:%:R>", users[uid])
+      await ctx.respond(embed=embed)
       return
   if len(text) > 128:
-    await ctx.respond("sorry, too long")
+    embed.description = "sorry, too long"
+    embed.color = 0xff0000
+    await ctx.respond(embed=embed)
     return
   headers = { #TODO: make this a function
     "Authorization": dct,
@@ -292,16 +355,21 @@ async def status(ctx: discord.ApplicationContext, text: str):
   with open("status.log", "a") as f:
     f.write(ctx.author.global_name + " " + str(time()))
   requests.patch("https://discord.com/api/v10/users/@me/settings", headers=headers, json=payload)
-  await ctx.respond(sprintf("changed lens status to \"%\" lol", text))
+  embed.description = sprintf("changed lens status to `%` lol", text)
+  await ctx.respond(embed=embed)
 
 @bot.slash_command(name="bot_status" ,description="change botters status (len only)")
 async def bot_status(ctx: discord.ApplicationContext, text: str):
   printf("% used command bot_status\n", ctx.author.global_name)
-  if ctx.author.id != 808122595898556457: #TODO: factor out
-    await ctx.respond("nuh uh")
+  embed: discord.Embed = discord.Embed(title="change cars status", color=0xff91ff)
+  if ctx.author.id != lena:
+    embed.color = 0xff0000
+    embed.description = "nuh uh"
+    await ctx.respond(embed=embed)
     return 
   await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name=text))
-  await ctx.respond("changed bot status uwu")
+  embed.description = "done :3"
+  await ctx.respond(embed=embed)
 
 @bot.slash_command(name="song" ,description="happiness")
 async def song(ctx: discord.ApplicationContext):
@@ -311,12 +379,16 @@ async def song(ctx: discord.ApplicationContext):
 @bot.slash_command(name="gambling" ,description="either nothing happens, or you get muted")
 async def gambling(ctx: discord.ApplicationContext):
   printf("% used command gambling\n", ctx.author.global_name)
+  embed: discord.Embed = discord.Embed(title="Lets go gambling!", color=0xff91ff)
   coinflip = random.randint(1, 2)
   if coinflip == 1:
     try: 
       await ctx.author.timeout_for(timedelta(hours=1), reason="gambling")
-    except Exception: #TODO: better error handling
-      await ctx.respond("cant time yourself out in dms dummy")
+    except Exception as e: #TODO: better error handling
+      printf("%", e)
+      embed.description = "cant time yourself out in dms dummy"
+      embed.color = 0xff0000
+      await ctx.respond(embed=embed)
       return
     id = str(ctx.author.id)
     with open("stupid.json", "r") as f:
@@ -327,9 +399,12 @@ async def gambling(ctx: discord.ApplicationContext):
       idiots[id] = 1
     with open("stupid.json", "w") as f:
       json.dump(idiots, f)
-    await ctx.respond("rip bozo")
+    embed.color = 0xff0000
+    embed.description = "rip bozo"
+    await ctx.respond(embed=embed)
   else:
-    await ctx.respond("you get to live another day")
+    embed.description = "you get to live another day"
+    await ctx.respond(embed=embed)
 
 @bot.slash_command(name="top", description="show the top idiots in the server")
 async def top(ctx: discord.ApplicationContext):
@@ -342,7 +417,7 @@ async def top(ctx: discord.ApplicationContext):
     description += f"**#{i}** <@{user_id}> — {hours} hour(s) muted\n"
   embed = discord.Embed(title="top idiots", color=0xff91ff)
   embed.description = description
-  await ctx.respond(embed=embed, allowed_mentions=discord.AllowedMentions(users=False))
+  await ctx.respond(embed=embed, )
   
 prompt = """
 <Instructions>
@@ -400,7 +475,7 @@ async def car(ctx: discord.ApplicationContext):
   embed: discord.Embed = discord.Embed(title="car", color=0xff91ff)
   with open("car.txt", "r") as f:
     car = f.read()
-  embed.description = car
+  embed.description = "```\n" + car + "\n```"
   await ctx.respond(embed=embed)
 
 @bot.slash_command(name="reminder", description="create a reminder") #TODO: add support for timestamps
@@ -408,7 +483,7 @@ async def reminder(ctx: discord.ApplicationContext, message: str, days: int = 0,
   printf("% used command reminder\n", ctx.author.global_name)
   with open("reminders.json", "r") as f:
     reminders = json.load(f)
-  when = int(time()) + days * 86400 + hours * 3600 + minutes * 60 #TODO: factor out
+  when = int(timedelta(days=days, hours=hours, minutes=minutes))
   reminders.append({
     "user_id": str(ctx.author.id),
     "when": when,
@@ -417,7 +492,9 @@ async def reminder(ctx: discord.ApplicationContext, message: str, days: int = 0,
   })
   with open("reminders.json", "w") as f:
     json.dump(reminders, f)
-  await ctx.respond(sprintf("Created reminder % <t:%:R>", message, when))
+  embed: discord.Embed = discord.Embed(title="Created Reminder", color=0xff91ff)
+  embed.description = sprintf("`%`, <t:%:R>", message, when)
+  await ctx.respond(embed=embed)
 
 @tasks.loop(seconds=10)
 async def check_reminders():
@@ -428,7 +505,9 @@ async def check_reminders():
       channel = bot.get_channel(i['channel'])
       if not channel:
         channel = bot.get_channel(1367249503593168978) # default to general
-      await channel.send(sprintf("<@%> Reminder: `%`", i['user_id'], i['message']))
+      embed: discord.Embed = discord.Embed(title="Reminder", color=0xff91ff)
+      embed.description = sprintf("<@%>\n`%`", i['user_id'], i['message'])
+      await channel.send(embed=embed)
       reminders.pop(idx)
   with open("reminders.json", "w") as f:
     json.dump(reminders, f)
@@ -436,15 +515,26 @@ async def check_reminders():
 @bot.slash_command(name="megagambling" ,description="either nothing happens, or you get muted for very long")
 async def megagambling(ctx: discord.ApplicationContext, stake: int):
   printf("% used command megagambling\n", ctx.author.global_name)
-  if stake > 24: #TODO: stake < 1 
-    await ctx.respond(sprintf("% is too large, the maximum is 24h", stake))
+  embed: discord.Embed = discord.Embed(title="LETS GO GAMBLING!!!", color=0xff91ff)
+  if stake > 24:
+    embed.description = sprintf("% is too large, the maximum is 24h", stake)
+    embed.color = 0xff0000
+    await ctx.respond(embed=embed)
+    return
+  if stake < 2:
+    embed.description = sprintf("% is too small, the minimum is 2h", stake)
+    embed.color = 0xff0000
+    await ctx.respond(embed=embed)
     return
   timeout = random.randint(0, stake)
   if timeout != 0:
     try:
       await ctx.author.timeout_for(timedelta(hours=timeout), reason="megagambling")
-    except Exception:
-      await ctx.respond("cant time yourself out in dms dummy")
+    except Exception as e:
+      printf("%", e)
+      embed.description = "cant time yourself out in dms dummy"
+      embed.color = 0xff0000
+      await ctx.respond(embed=embed)
       return
     id = str(ctx.author.id)
     with open("stupid.json", "r") as f:
@@ -455,13 +545,29 @@ async def megagambling(ctx: discord.ApplicationContext, stake: int):
       idiots[id] = timeout
     with open("stupid.json", "w") as f:
       json.dump(idiots, f)
-    await ctx.respond(sprintf("ur muted for %h now, rip bozo (stake: %)", timeout, stake))
+    embed.description = sprintf("ur muted for %h now, rip bozo\n(stake: %)", timeout, stake)
+    embed.color = 0xff0000
+    await ctx.respond(embed=embed)
   else:
-    await ctx.respond("you get to live another day")
- 
+    embed.description = "you get to live another day"
+    await ctx.respond(embed=embed)
+
+@bot.slash_command(name="reminders_show", description="show reminders")
+async def reminders_show(ctx: discord.ApplicationContext):
+  embed: discord.Embed = discord.Embed(title="active reminders", color=0xff91ff)
+  with open("reminders.json", "r") as f:
+    reminders = json.load(f)
+  if len(reminders) < 1:
+    embed.description = "No active reminders"
+    await ctx.respond(embed=embed)
+    return
+  embed.description = ""
+  for idx, i in enumerate(reminders):
+    embed.description += sprintf("#%: <@%> - `%` <t:%:R>", idx, i['user_id'], i['message'], i['when'])
+  await ctx.respond(embed=embed, allowed_mentions=discord.AllowedMentions(users=False))
+
 bot.run(token)
 
-#TODO: switch to embeds
 #TODO: leveling system (+ gambling ofc)
 #TODO: fix car detection
 #TODO: better error handling 
