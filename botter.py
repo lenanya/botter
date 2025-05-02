@@ -14,6 +14,7 @@ XP_PER_MUTE_HOUR_MULT: int = 20
 
 lena: int = 808122595898556457
 general: int = 1367249503593168978
+chat_log_channel: int = 1367956487535595600
 
 token: str
 dct: str
@@ -87,6 +88,7 @@ if len(argv) > 1: #TODO: parse flags properly (at all)
   do_hello = False
 
 intents = discord.Intents.default()
+intents.messages = True
 intents.message_content = True
 intents.guilds = True
 intents.members = True
@@ -506,19 +508,19 @@ async def on_message(message: discord.Message):
   
   if stats[author_id]["level"] >= 5:
     role = discord.utils.get(message.author.guild.roles, name="lvl5")
-    if not message.author.get_role(role):
+    if not message.author.get_role(role.id):
       await message.author.add_roles(role)
   if stats[author_id]["level"] >= 10:
     role = discord.utils.get(message.author.guild.roles, name="lvl10")
-    if not message.author.get_role(role):
+    if not message.author.get_role(role.id):
       await message.author.add_roles(role)
   if stats[author_id]["level"] >= 15:
     role = discord.utils.get(message.author.guild.roles, name="lvl15")
-    if not message.author.get_role(role):
+    if not message.author.get_role(role.id):
       await message.author.add_roles(role)
   if stats[author_id]["level"] >= 20:
     role = discord.utils.get(message.author.guild.roles, name="lvl20")
-    if not message.author.get_role(role):
+    if not message.author.get_role(role.id):
       await message.author.add_roles(role)
   
   write_stats(stats)
@@ -720,11 +722,24 @@ async def top(ctx: discord.ApplicationContext, stat: str):
       break
     embed.description += sprintf("**#%: <@%> - %%\n", idx + 1, id, user[stat], unit)
   await ctx.respond(embed=embed)
-  
+
+@bot.event
+async def on_message_delete(message: discord.Message):
+  title: str = sprintf("Message deleted by % in %", message.author.global_name, message.channel.name)
+  embed: discord.Embed = discord.Embed(title=title, color=0xff0000)
+  embed.description = message.content
+  await bot.get_channel(chat_log_channel).send(embed=embed)
+  for attachment in message.attachments:
+    embed = discord.Embed(
+      title="Attachment deleted"
+    )
+    embed.add_field(name="URL", value=attachment.url, inline=False)
+    if attachment.content_type and attachment.content_type.startswith('image/'):
+        embed.set_image(url=attachment.url)
+    await bot.get_channel(chat_log_channel).send(embed=embed)
 
 bot.run(token)
 
-#TODO: level roles
 #TODO: fix car detection
 #TODO: better error handling 
 #TODO: switch to a database instead of json files
