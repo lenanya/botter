@@ -379,10 +379,10 @@ async def on_message(message: discord.Message):
   if message.author.id == bot.user.id:
     return
   if message.reference and message.reference.resolved:
-    if message.reference.resolved.user.id == bot.user.id:
-      if "fuck you" in message.content.lower():
-        message.author.timeout_for(timedelta(minutes=5), reason="insulted car")
-        message.delete()
+    if message.reference.resolved.author.id == bot.user.id:
+      if "fuck you" in message.content.lower() or "fuck u" in message.content.lower():
+        await message.author.timeout_for(timedelta(minutes=5), reason="insulted car")
+        await message.delete()
         return
   if "car " in message.content.lower() or message.content.lower() == "car": #TODO: fix detection
     await message.reply("hiii that me :3")
