@@ -14,11 +14,11 @@ dct: str
 
 def sprintf(fmt: str, *vaargs) -> str:
   ret: str = ""
-  index = 0;
-  escaped = False;
+  index = 0
+  escaped = False
   for i in fmt:
     if i == "|":
-      escaped = True;
+      escaped = True
       continue
     if i == "%":
       if escaped:
@@ -34,11 +34,11 @@ def sprintf(fmt: str, *vaargs) -> str:
   return ret
 
 def printf(fmt: str, *vaargs):
-  index = 0;
-  escaped = False;
+  index = 0
+  escaped = False
   for i in fmt:
     if i == "|":
-      escaped = True;
+      escaped = True
       continue
     if i == "%":
       if escaped:
@@ -85,7 +85,7 @@ async def mute_me(ctx: discord.ApplicationContext):
     return
   id = str(ctx.author.id)
   with open("stupid.json", "r") as f:
-    idiots = json.load(f);
+    idiots = json.load(f)
   if id in idiots:
     idiots[id] += 1
   else:
@@ -99,7 +99,7 @@ async def stupid(ctx: discord.ApplicationContext):
   printf("% used command stupid\n", ctx.author.global_name)
   id = str(ctx.author.id)
   with open("stupid.json", "r") as f:
-    idiots = json.load(f);
+    idiots = json.load(f)
   if id in idiots:
     await ctx.respond(sprintf("uve muted urself for % hours total, idiot", idiots[id]))
   else:
@@ -320,7 +320,7 @@ async def gambling(ctx: discord.ApplicationContext):
       return
     id = str(ctx.author.id)
     with open("stupid.json", "r") as f:
-      idiots = json.load(f);
+      idiots = json.load(f)
     if id in idiots:
       idiots[id] += 1
     else:
@@ -335,7 +335,7 @@ async def gambling(ctx: discord.ApplicationContext):
 async def top(ctx: discord.ApplicationContext):
   printf("% used command top\n", ctx.author.global_name)
   with open("stupid.json", "r") as f:
-    idiots = json.load(f);
+    idiots = json.load(f)
   idiots_sorted = sorted(idiots.items(), key=lambda item: item[1], reverse=True)
   description = ""
   for i, (user_id, hours) in enumerate(idiots_sorted, start=1):
@@ -395,7 +395,7 @@ async def car(ctx: discord.ApplicationContext):
   printf("% used command car\n", ctx.author.global_name)
   embed: discord.Embed = discord.Embed(title="car", color=0xff91ff)
   with open("car.txt", "r") as f:
-    car = f.read();
+    car = f.read()
   embed.description = car
   await ctx.respond(embed=embed)
 
@@ -444,7 +444,7 @@ async def megagambling(ctx: discord.ApplicationContext, stake: int):
       return
     id = str(ctx.author.id)
     with open("stupid.json", "r") as f:
-      idiots = json.load(f);
+      idiots = json.load(f)
     if id in idiots:
       idiots[id] += timeout
     else:
