@@ -1,5 +1,6 @@
 import discord
 from discord.ext import commands, tasks
+from discord import SlashCommandOptionType
 from datetime import timedelta
 import json
 import psutil
@@ -64,7 +65,7 @@ def get_stats() -> dict:
 
 def write_stats(stats: dict):
   with open("stats.json", 'w') as f:
-    json.dump(stats, f)
+    json.dump(stats, f, indent=2)
 
 def level_threshhold(level: int) -> int:
   total_value = round(5 * level ** 2.7 + 50 * level + 30)
@@ -403,13 +404,18 @@ async def song(ctx: discord.ApplicationContext):
 async def gambling(ctx: discord.ApplicationContext):
   printf("% used command gambling\n", ctx.author.global_name)
   embed: discord.Embed = discord.Embed(title="Lets go gambling!", color=0xff91ff)
+  if not isinstance(ctx.author, discord.Member):
+    embed.description = "cant time yourself out in dms dummy"
+    embed.color = 0xff0000
+    await ctx.respond(embed=embed)
+    return
   coinflip = random.randint(1, 2)
   if coinflip == 1:
     try: 
       await ctx.author.timeout_for(timedelta(hours=1), reason="gambling")
     except Exception as e: #TODO: better error handling
       printf("%", e)
-      embed.description = "cant time yourself out in dms dummy"
+      embed.description = "cant use this in dms smh"
       embed.color = 0xff0000
       await ctx.respond(embed=embed)
       return
@@ -474,6 +480,9 @@ async def on_message(message: discord.Message):
   if message.author.id == bot.user.id:
     return
 
+  if not isinstance(message.author, discord.Member):
+    return
+  
   author_id: str = str(message.author.id)
 
   stats = get_stats()
@@ -577,6 +586,11 @@ async def check_reminders():
 async def megagambling(ctx: discord.ApplicationContext, stake: int):
   printf("% used command megagambling\n", ctx.author.global_name)
   embed: discord.Embed = discord.Embed(title="LETS GO GAMBLING!!!", color=0xff91ff)
+  if not isinstance(ctx.author, discord.Member):
+    embed.description = "cant use this in dms smh"
+    embed.color = 0xff0000
+    await ctx.respond(embed=embed)
+    return
   if stake > 24:
     embed.description = sprintf("% is too large, the maximum is 24h", stake)
     embed.color = 0xff0000
@@ -589,6 +603,7 @@ async def megagambling(ctx: discord.ApplicationContext, stake: int):
     return
   timeout = random.randint(0, stake)
   stats = get_stats()
+  id = str(ctx.author.id)
   if timeout != 0:
     try:
       await ctx.author.timeout_for(timedelta(hours=timeout), reason="megagambling")
@@ -598,8 +613,6 @@ async def megagambling(ctx: discord.ApplicationContext, stake: int):
       embed.color = 0xff0000
       await ctx.respond(embed=embed)
       return
-    id = str(ctx.author.id)
-    
     if id in stats:
       stats[id]["time_muted"] += timeout
     else:
@@ -671,6 +684,43 @@ async def stats(ctx: discord.ApplicationContext, member: discord.Member = None):
     stats[id]["message_count"]
   )
   await ctx.respond(embed=embed)
+
+@bot.slash_command(name="top", description="top by xp and hours muted")
+@discord.option(
+  name="stat",
+  choices=[
+      discord.OptionChoice(name="XP", value="xp"),
+      discord.OptionChoice(name="Messages", value="message_count"),
+      discord.OptionChoice(name="Level", value="level"),
+      discord.OptionChoice(name="Time spent muted", value="time_muted"),
+  ],
+  required=True
+)
+async def top(ctx: discord.ApplicationContext, stat: str):
+  embed: discord.Embed = discord.Embed(color=0xff91ff)
+  if stat == "xp":
+    embed.title = "Top by XP"
+    unit = "xp"
+  elif stat == "message_count":
+    unit = " messages"
+    embed.title = "Top by amount of messages"
+  elif stat == "level":
+    unit = ""
+    embed.title = "Top by level"
+  elif stat == "time_muted":
+    unit = "h"
+    embed.title = "Top by time spent muted"
+  else:
+    await ctx.respond("how")
+  stats = get_stats()
+  stats_sorted = sorted(stats.items(), key=lambda item: item[1][stat], reverse=True)
+  embed.description = ""
+  for idx, (id, user) in enumerate(stats_sorted):
+    if idx >= 10:
+      break
+    embed.description += sprintf("**#%: <@%> - %%\n", idx + 1, id, user[stat], unit)
+  await ctx.respond(embed=embed)
+  
 
 bot.run(token)
 
