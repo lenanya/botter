@@ -9,6 +9,8 @@ from google import genai
 from time import time
 from sys import argv
 
+XP_PER_MUTE_HOUR_MULT: int = 20
+
 lena: int = 808122595898556457
 general: int = 1367249503593168978
 
@@ -54,7 +56,21 @@ def printf(fmt: str, *vaargs):
       index += 1
     else:
       print(i, end="")
-      
+
+def get_stats() -> dict:
+  with open("stats.json", "r") as f:
+    stats: dict = json.load(f)
+  return stats
+
+def write_stats(stats: dict):
+  with open("stats.json", 'w') as f:
+    json.dump(stats, f)
+
+def level_threshhold(level: int) -> int:
+  total_value = round(5 * level ** 2.7 + 50 * level + 30)
+  tens = total_value % 10
+  return total_value - tens
+
 with open(".token", 'r') as f: #TODO: replace with env file or sumn
   token = f.read()
     
@@ -88,14 +104,22 @@ async def mute_me(ctx: discord.ApplicationContext):
     await ctx.respond("cant time yourself out in dms dummy")
     return
   id = str(ctx.author.id)
-  with open("stupid.json", "r") as f:
-    idiots = json.load(f)
-  if id in idiots:
-    idiots[id] += 1
+  
+  stats = get_stats()
+  
+  if id in stats:
+    stats[id]["time_muted"] += 1
   else:
-    idiots[id] = 1
-  with open("stupid.json", "w") as f:
-    json.dump(idiots, f)
+    stats[id] = {
+      "time_muted": 1,
+      "messages": 0,
+      "last_message": int(time()),
+      "xp": 0,
+      "level": 0
+    }
+  
+  write_stats(stats)
+  
   embed: discord.Embed = discord.Embed(title="congrats", color=0xff91ff)
   embed.description = "you timed yourself out for an hour, dumbass"
   await ctx.respond(embed=embed)
@@ -104,14 +128,13 @@ async def mute_me(ctx: discord.ApplicationContext):
 async def stupid(ctx: discord.ApplicationContext):
   printf("% used command stupid\n", ctx.author.global_name)
   id = str(ctx.author.id)
-  with open("stupid.json", "r") as f:
-    idiots = json.load(f)
+  stats = get_stats()
   embed: discord.Embed = discord.Embed(title="stupid", color=0xff91ff)
-  if id in idiots:
-    embed.color = 0xff0000
-    embed.description = sprintf("uve muted urself for % hours total, idiot", idiots[id])
-  else:
-    embed.description = "u havent muted yourself, good job"
+  embed.description = "u havent muted yourself, good job"
+  if id in stats:
+    if stats[id]["time_muted"] > 0:
+      embed.color = 0xff0000
+      embed.description = sprintf("uve muted urself for % hours total, idiot", stats[id]["time_muted"])
   await ctx.respond(embed=embed)
 
 @bot.slash_command(name="echo", description="makes the bot say things")
@@ -353,7 +376,7 @@ async def status(ctx: discord.ApplicationContext, text: str):
   with open("status.json", "w") as f:
     json.dump(users, f)
   with open("status.log", "a") as f:
-    f.write(ctx.author.global_name + " " + str(time()))
+    f.write(ctx.author.global_name + " " + str(time()) + "\n")
   requests.patch("https://discord.com/api/v10/users/@me/settings", headers=headers, json=payload)
   embed.description = sprintf("changed lens status to `%` lol", text)
   await ctx.respond(embed=embed)
@@ -391,33 +414,30 @@ async def gambling(ctx: discord.ApplicationContext):
       await ctx.respond(embed=embed)
       return
     id = str(ctx.author.id)
-    with open("stupid.json", "r") as f:
-      idiots = json.load(f)
-    if id in idiots:
-      idiots[id] += 1
+    stats = get_stats()
+  
+    if id in stats:
+      stats[id]["time_muted"] += 1
     else:
-      idiots[id] = 1
-    with open("stupid.json", "w") as f:
-      json.dump(idiots, f)
+      stats[id] = {
+        "time_muted": 1,
+        "messages": 0,
+        "last_message": int(time()),
+        "xp": 0,
+        "level": 0
+      }
+
+    write_stats(stats)
     embed.color = 0xff0000
     embed.description = "rip bozo"
     await ctx.respond(embed=embed)
   else:
+    stats[id]["xp"] += random.randint(15, 30) * XP_PER_MUTE_HOUR_MULT
+    if stats[id]["xp"] > level_threshhold(stats[id]["level"] + 1):
+      stats[id]["level"] += 1
+    write_stats(stats)
     embed.description = "you get to live another day"
     await ctx.respond(embed=embed)
-
-@bot.slash_command(name="top", description="show the top idiots in the server")
-async def top(ctx: discord.ApplicationContext):
-  printf("% used command top\n", ctx.author.global_name)
-  with open("stupid.json", "r") as f:
-    idiots = json.load(f)
-  idiots_sorted = sorted(idiots.items(), key=lambda item: item[1], reverse=True)
-  description = ""
-  for i, (user_id, hours) in enumerate(idiots_sorted, start=1):
-    description += f"**#{i}** <@{user_id}> — {hours} hour(s) muted\n"
-  embed = discord.Embed(title="top idiots", color=0xff91ff)
-  embed.description = description
-  await ctx.respond(embed=embed, )
   
 prompt = """
 <Instructions>
@@ -453,6 +473,47 @@ async def ai(ctx: discord.ApplicationContext, text: str):
 async def on_message(message: discord.Message):
   if message.author.id == bot.user.id:
     return
+
+  author_id: str = str(message.author.id)
+
+  stats = get_stats()
+
+  if not author_id in stats:
+    stats[author_id] = {
+      "message_count": 0,
+      "xp": 0,
+      "time_muted": 0,
+      "last_message": 0,
+      "level": 0
+    }
+    
+  stats[author_id]["message_count"] += 1
+  if stats[author_id]["last_message"] < int(time()) - 30:
+    stats[author_id]["last_message"] = int(time())
+    stats[author_id]["xp"] += random.randint(15, 30)
+    if stats[author_id]["xp"] > level_threshhold(stats[author_id]["level"] + 1):
+      stats[author_id]["level"] += 1
+  
+  
+  if stats[author_id]["level"] >= 5:
+    role = discord.utils.get(message.author.guild.roles, name="lvl5")
+    if not message.author.get_role(role):
+      await message.author.add_roles(role)
+  if stats[author_id]["level"] >= 10:
+    role = discord.utils.get(message.author.guild.roles, name="lvl10")
+    if not message.author.get_role(role):
+      await message.author.add_roles(role)
+  if stats[author_id]["level"] >= 15:
+    role = discord.utils.get(message.author.guild.roles, name="lvl15")
+    if not message.author.get_role(role):
+      await message.author.add_roles(role)
+  if stats[author_id]["level"] >= 20:
+    role = discord.utils.get(message.author.guild.roles, name="lvl20")
+    if not message.author.get_role(role):
+      await message.author.add_roles(role)
+  
+  write_stats(stats)
+  
   if message.reference and message.reference.resolved:
     if message.reference.resolved.author.id == bot.user.id:
       if "fuck you" in message.content.lower() or "fuck u" in message.content.lower():
@@ -527,6 +588,7 @@ async def megagambling(ctx: discord.ApplicationContext, stake: int):
     await ctx.respond(embed=embed)
     return
   timeout = random.randint(0, stake)
+  stats = get_stats()
   if timeout != 0:
     try:
       await ctx.author.timeout_for(timedelta(hours=timeout), reason="megagambling")
@@ -537,23 +599,33 @@ async def megagambling(ctx: discord.ApplicationContext, stake: int):
       await ctx.respond(embed=embed)
       return
     id = str(ctx.author.id)
-    with open("stupid.json", "r") as f:
-      idiots = json.load(f)
-    if id in idiots:
-      idiots[id] += timeout
+    
+    if id in stats:
+      stats[id]["time_muted"] += timeout
     else:
-      idiots[id] = timeout
-    with open("stupid.json", "w") as f:
-      json.dump(idiots, f)
+      stats[id] = {
+        "time_muted": timeout,
+        "message_count": 0,
+        "last_message": int(time()),
+        "xp": 0,
+        "level": 0
+      }
+
+    write_stats(stats)
     embed.description = sprintf("ur muted for %h now, rip bozo\n(stake: %)", timeout, stake)
     embed.color = 0xff0000
     await ctx.respond(embed=embed)
   else:
+    stats[id]["xp"] += (random.randint(15, 30) * XP_PER_MUTE_HOUR_MULT) * (1.05 ** stake)
+    if stats[id]["xp"] > level_threshhold(stats[id]["level"] + 1):
+      stats[id]["level"] += 1
+    write_stats(stats)
     embed.description = "you get to live another day"
     await ctx.respond(embed=embed)
 
 @bot.slash_command(name="reminders_show", description="show reminders")
 async def reminders_show(ctx: discord.ApplicationContext):
+  printf("% used command reminders_show\n", ctx.author.global_name)
   embed: discord.Embed = discord.Embed(title="active reminders", color=0xff91ff)
   with open("reminders.json", "r") as f:
     reminders = json.load(f)
@@ -566,13 +638,46 @@ async def reminders_show(ctx: discord.ApplicationContext):
     embed.description += sprintf("#%: <@%> - `%` <t:%:R>", idx, i['user_id'], i['message'], i['when'])
   await ctx.respond(embed=embed, allowed_mentions=discord.AllowedMentions(users=False))
 
+@bot.slash_command(name="stats", description="show your or someone elses stats")
+async def stats(ctx: discord.ApplicationContext, member: discord.Member = None):
+  printf("% used command stats\n", ctx.author.global_name)
+  if member:
+    id: str = str(member.id)
+    name: str = member.global_name
+  else:
+    id: str = str(ctx.author.id)
+    name: str = ctx.author.global_name
+  stats = get_stats()
+  if not id in stats:
+    stats[id] = {
+      "time_muted": 0,
+      "message_count": 0,
+      "last_message": int(time()),
+      "xp": 0,
+      "level": 0
+    }
+  embed: discord.Embed = discord.Embed(title=sprintf("Stats of %", name), color=0xff91ff)
+  embed.description = sprintf(
+    """
+    Level: `%`
+    XP: `%/%`
+    Hours muted: `%h`
+    Messages: `%`
+    """,
+    stats[id]["level"],
+    stats[id]["xp"],
+    level_threshhold(stats[id]["level"] + 1),
+    stats[id]["time_muted"],
+    stats[id]["message_count"]
+  )
+  await ctx.respond(embed=embed)
+
 bot.run(token)
 
-#TODO: leveling system (+ gambling ofc)
+#TODO: level roles
 #TODO: fix car detection
 #TODO: better error handling 
 #TODO: switch to a database instead of json files
-#TODO: show reminders
 #TODO: delete reminders
 #TODO: normal timeout command for mods
 #TODO: message logging
