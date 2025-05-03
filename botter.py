@@ -10,7 +10,7 @@ from google import genai
 from time import time
 from sys import argv
 
-XP_PER_MUTE_HOUR_MULT: int = 20
+XP_PER_MUTE_HOUR_MULT: int = 25
 
 lena: int = 808122595898556457
 general: int = 1367249503593168978
@@ -295,15 +295,6 @@ async def ip(ctx: discord.ApplicationContext):
   embed: discord.Embed = discord.Embed(title="ip", color=0xff91ff)
   embed.description = "192.168.69.69"
   await ctx.respond(embed=embed) # why
-
-@bot.slash_command(name="pwd" ,description="print current directory lena is in")
-async def pwd(ctx: discord.ApplicationContext):
-  printf("% used command pwd\n", ctx.author.global_name)
-  with open("cwd", "r") as f:
-    cwd = f.read()
-  embed: discord.Embed = discord.Embed(title="current directory", color=0xff91ff)
-  embed.description = cwd
-  await ctx.respond(embed=embed)
   
 @bot.slash_command(name="temperature" ,description="len room temperature")
 async def temperature(ctx: discord.ApplicationContext, fahrenheit: bool = False):
@@ -555,7 +546,7 @@ async def reminder(ctx: discord.ApplicationContext, message: str, days: int = 0,
   printf("% used command reminder\n", ctx.author.global_name)
   with open("reminders.json", "r") as f:
     reminders = json.load(f)
-  when = int(timedelta(days=days, hours=hours, minutes=minutes))
+  when = int(time()) + days * 86400 + hours * 3600 + minutes * 60
   reminders.append({
     "user_id": str(ctx.author.id),
     "when": when,
@@ -576,10 +567,10 @@ async def check_reminders():
     if i['when'] < time():
       channel = bot.get_channel(i['channel'])
       if not channel:
-        channel = bot.get_channel(1367249503593168978) # default to general
+        channel = bot.get_channel(general) # default to general
       embed: discord.Embed = discord.Embed(title="Reminder", color=0xff91ff)
       embed.description = sprintf("<@%>\n`%`", i['user_id'], i['message'])
-      await channel.send(embed=embed)
+      await channel.send(sprintf("<@%>", i["user_id"]), embed=embed)
       reminders.pop(idx)
   with open("reminders.json", "w") as f:
     json.dump(reminders, f)
@@ -631,7 +622,7 @@ async def megagambling(ctx: discord.ApplicationContext, stake: int):
     embed.color = 0xff0000
     await ctx.respond(embed=embed)
   else:
-    stats[id]["xp"] += (random.randint(15, 30) * XP_PER_MUTE_HOUR_MULT) * (1.05 ** stake)
+    stats[id]["xp"] += round((random.randint(15, 30) * XP_PER_MUTE_HOUR_MULT) * (1.12 ** stake))
     if stats[id]["xp"] > level_threshhold(stats[id]["level"] + 1):
       stats[id]["level"] += 1
     write_stats(stats)
@@ -720,7 +711,7 @@ async def top(ctx: discord.ApplicationContext, stat: str):
   for idx, (id, user) in enumerate(stats_sorted):
     if idx >= 10:
       break
-    embed.description += sprintf("**#%: <@%> - %%\n", idx + 1, id, user[stat], unit)
+    embed.description += sprintf("**#%**: <@%> - %%\n", idx + 1, id, user[stat], unit)
   await ctx.respond(embed=embed)
 
 @bot.event
