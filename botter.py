@@ -1,6 +1,5 @@
 import discord
 from discord.ext import commands, tasks
-from discord import SlashCommandOptionType
 from datetime import timedelta
 import json
 import psutil
@@ -12,9 +11,9 @@ from sys import argv
 
 XP_PER_MUTE_HOUR_MULT: int = 25
 
-lena: int = 808122595898556457
-general: int = 1367249503593168978
-chat_log_channel: int = 1367956487535595600
+LENA: int = 808122595898556457
+GENERAL_CHANNEL: int = 1367249503593168978
+LOG_CHANNEL: int = 1367956487535595600
 
 token: str
 dct: str
@@ -93,7 +92,7 @@ intents.message_content = True
 intents.guilds = True
 intents.members = True
 
-bot = commands.Bot(command_prefix='#', intents=intents)
+bot: discord.Bot = commands.Bot(command_prefix='#', intents=intents)
 
 client = genai.Client(api_key=gemini_api_key)
 
@@ -115,7 +114,7 @@ async def mute_me(ctx: discord.ApplicationContext):
   else:
     stats[id] = {
       "time_muted": 1,
-      "messages": 0,
+      "message_count": 0,
       "last_message": int(time()),
       "xp": 0,
       "level": 0
@@ -130,8 +129,8 @@ async def mute_me(ctx: discord.ApplicationContext):
 @bot.slash_command(name="stupid", description="shows how many times uve muted urrself")
 async def stupid(ctx: discord.ApplicationContext):
   printf("% used command stupid\n", ctx.author.global_name)
-  id = str(ctx.author.id)
-  stats = get_stats()
+  id: str = str(ctx.author.id)
+  stats: dict = get_stats()
   embed: discord.Embed = discord.Embed(title="stupid", color=0xff91ff)
   embed.description = "u havent muted yourself, good job"
   if id in stats:
@@ -148,7 +147,7 @@ async def echo(ctx: discord.ApplicationContext, text: str):
 @bot.slash_command(name="kys", description="murders botter (len only)")
 async def kys(ctx: discord.ApplicationContext):
   printf("% used command kys\n", ctx.author.global_name)
-  if ctx.author.id != lena: 
+  if ctx.author.id != LENA: 
     await ctx.respond("nuh uh")
     return
   await ctx.respond("k bye")
@@ -178,14 +177,14 @@ async def am_i_gay(ctx: discord.ApplicationContext):
 async def are_you_gay(ctx: discord.ApplicationContext):
   printf("% used command are_you_gay\n", ctx.author.global_name)
   embed: discord.Embed = discord.Embed(title="maybe", color=0xff91ff)
-  embed.description = sprintf("but only for <@%", lena)
+  embed.description = sprintf("but only for <@%>", LENA)
   await ctx.respond(embed=embed)
 
 @bot.event
 async def on_ready():
   printf("logged in as % (%)\n", bot.user.name, bot.user.id)
   if do_hello:
-    await bot.get_channel(general).send("hi chat i got restarted :3")
+    await bot.get_channel(GENERAL_CHANNEL).send("hi chat i got restarted :3")
   await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="all of you"))
   check_reminders.start()
 
@@ -229,7 +228,7 @@ default_role: str = "humans, probably"
 async def on_member_join(member: discord.Member):
   role = discord.utils.get(member.guild.roles, name=default_role)
   await member.add_roles(role)
-  await bot.get_channel(general).send(sprintf("new member: <@%>, hiiii :3", member.id))
+  await bot.get_channel(GENERAL_CHANNEL).send(sprintf("new member: <@%>, hiiii :3", member.id))
 
 @bot.slash_command(name="cpu" ,description="cpu load on len computer")
 async def cpu(ctx: discord.ApplicationContext):
@@ -311,17 +310,17 @@ async def temperature(ctx: discord.ApplicationContext, fahrenheit: bool = False)
 @bot.event
 async def on_command_error(ctx: discord.ApplicationContext, error):
   if isinstance(error, commands.CommandNotFound):
-    await ctx.reply("that command doesnt exist")
+    await ctx.respond("that command doesnt exist")
   else:
     embed: discord.Embed = discord.Embed(title="error :(", color=0xff0000)
     embed.description = sprintf("%", error)
-    await ctx.reply(embed=embed)
+    await ctx.respond(embed=embed)
 
 @bot.slash_command(name="status_block" ,description="block user from using status (len only)")
 async def status_block(ctx: discord.ApplicationContext, member: discord.Member):
   printf("% used command status_block\n", ctx.author.global_name)
   embed: discord.Embed = discord.Embed(title="status block", color=0xff00000)
-  if ctx.author.id != lena: 
+  if ctx.author.id != LENA: 
     embed.description = "nuh uh"
     await ctx.respond(embed=embed)
     return
@@ -333,7 +332,12 @@ async def status_block(ctx: discord.ApplicationContext, member: discord.Member):
   embed.description = sprintf("% can no longer change len status", member.global_name)
   await ctx.respond(embed=embed)
 
-@bot.slash_command(name="status" ,description="change len status")
+STATUS_WHITELIST: list[int] = [
+  355667035239481344,
+  808122595898556457
+]
+
+@bot.slash_command(name="status" ,description="change len status but get muted for a day")
 async def status(ctx: discord.ApplicationContext, text: str):
   printf("% used command status\n", ctx.author.global_name)
   embed: discord.Embed = discord.Embed(title="change lens status", color=0xff91ff)
@@ -345,13 +349,18 @@ async def status(ctx: discord.ApplicationContext, text: str):
     embed.color = 0xff0000
     await ctx.respond(embed=embed)
     return
-  with open("status.json", "r") as f:
-    users = json.load(f)
-  if uid in users:
-    if users[uid] > int(time()):
-      embed.description = sprintf("you can do this again <t:%:R>", users[uid])
-      await ctx.respond(embed=embed)
-      return
+  if int(uid) not in STATUS_WHITELIST:
+    with open("status.json", "r") as f:
+      users = json.load(f)
+    if uid in users:
+      if users[uid] > int(time()):
+        embed.description = sprintf("you can do this again <t:%:R>", users[uid])
+        await ctx.respond(embed=embed)
+        return
+    users[uid] = int(time()) + 86400
+    with open("status.json", "w") as f:
+      json.dump(users, f)
+    await ctx.author.timeout_for(timedelta(days=7))
   if len(text) > 128:
     embed.description = "sorry, too long"
     embed.color = 0xff0000
@@ -366,11 +375,8 @@ async def status(ctx: discord.ApplicationContext, text: str):
       "text": text
     }
   }
-  users[uid] = int(time()) + 86400
-  with open("status.json", "w") as f:
-    json.dump(users, f)
   with open("status.log", "a") as f:
-    f.write(ctx.author.global_name + " " + str(time()) + "\n")
+   f.write(sprintf("\"%\" % \"%\"\n", ctx.author.global_name, str(time()), text))
   requests.patch("https://discord.com/api/v10/users/@me/settings", headers=headers, json=payload)
   embed.description = sprintf("changed lens status to `%` lol", text)
   await ctx.respond(embed=embed)
@@ -379,7 +385,7 @@ async def status(ctx: discord.ApplicationContext, text: str):
 async def bot_status(ctx: discord.ApplicationContext, text: str):
   printf("% used command bot_status\n", ctx.author.global_name)
   embed: discord.Embed = discord.Embed(title="change cars status", color=0xff91ff)
-  if ctx.author.id != lena:
+  if ctx.author.id != LENA:
     embed.color = 0xff0000
     embed.description = "nuh uh"
     await ctx.respond(embed=embed)
@@ -488,9 +494,15 @@ async def on_message(message: discord.Message):
       "last_message": 0,
       "level": 0
     }
-    
+  
+  
   stats[author_id]["message_count"] += 1
   if stats[author_id]["last_message"] < int(time()) - 30:
+    giga_gambling: int = random.randint(0, 3000)
+    if giga_gambling == 69:
+      stats[author_id]["xp"] += 690;
+      await message.reply("HOLY FUCK YOU GOT THE 1/3001 AND GOT 690XP!!!")
+
     stats[author_id]["last_message"] = int(time())
     stats[author_id]["xp"] += random.randint(15, 30)
     if stats[author_id]["xp"] > level_threshhold(stats[author_id]["level"] + 1):
@@ -530,6 +542,8 @@ async def on_message(message: discord.Message):
     await message.reply("uwu")
   elif ":3" in message.content:
     await message.reply(":3")
+    stats[author_id]["xp"] += 58
+    write_stats(stats)
   
 
 @bot.slash_command(name="car", description="car") #TODO: fix monospace issue
@@ -567,7 +581,7 @@ async def check_reminders():
     if i['when'] < time():
       channel = bot.get_channel(i['channel'])
       if not channel:
-        channel = bot.get_channel(general) # default to general
+        channel = bot.get_channel(GENERAL_CHANNEL) # default to general
       embed: discord.Embed = discord.Embed(title="Reminder", color=0xff91ff)
       embed.description = sprintf("<@%>\n`%`", i['user_id'], i['message'])
       await channel.send(sprintf("<@%>", i["user_id"]), embed=embed)
@@ -719,7 +733,7 @@ async def on_message_delete(message: discord.Message):
   title: str = sprintf("Message deleted by % in %", message.author.global_name, message.channel.name)
   embed: discord.Embed = discord.Embed(title=title, color=0xff0000)
   embed.description = message.content
-  await bot.get_channel(chat_log_channel).send(embed=embed)
+  await bot.get_channel(LOG_CHANNEL).send(embed=embed)
   for attachment in message.attachments:
     embed = discord.Embed(
       title="Attachment deleted"
@@ -727,7 +741,7 @@ async def on_message_delete(message: discord.Message):
     embed.add_field(name="URL", value=attachment.url, inline=False)
     if attachment.content_type and attachment.content_type.startswith('image/'):
         embed.set_image(url=attachment.url)
-    await bot.get_channel(chat_log_channel).send(embed=embed)
+    await bot.get_channel(LOG_CHANNEL).send(embed=embed)
 
 bot.run(token)
 
