@@ -347,7 +347,7 @@ def change_status(text: str):
   }
   requests.patch("https://discord.com/api/v10/users/@me/settings", headers=headers, json=payload)
 
-@bot.slash_command(name="status" ,description=sprintf("spend % :3$ to change len's status", STATUS_CHANGE_COST))
+@bot.slash_command(name="status" ,description=sprintf("spend %:3$ to change len's status", STATUS_CHANGE_COST))
 async def status(ctx: discord.ApplicationContext, text: str):
   printf("% used command status\n", ctx.author.global_name)
   embed: discord.Embed = discord.Embed(title="change lens status", color=0xff91ff)
@@ -374,7 +374,7 @@ async def status(ctx: discord.ApplicationContext, text: str):
   if "infinite_status" not in user_stats["inventory"]:
     has_currency: int = stats[uid]["colonthreecurrency"] 
     if has_currency < STATUS_CHANGE_COST:
-      embed.description = sprintf("you dont have enough :3$, you need % :3$, but have % :3$", STATUS_CHANGE_COST, has_currency)
+      embed.description = sprintf("you dont have enough:3$, you need %:3$, but have %:3$", STATUS_CHANGE_COST, has_currency)
       await ctx.respond(embed=embed)
       return      
     stats[uid]["colonthreecurrency"] -= STATUS_CHANGE_COST
@@ -509,7 +509,7 @@ async def on_message(message: discord.Message):
       stats[author_id]["colonthreecurrency"] += COLON_THREE_GAIN
       stats[author_id]["next_colon_three"] = int(time() + COLON_THREE_COOLDOWN)
       write_stats(stats)
-      printf("% got +% :3$\n", message.author.global_name, COLON_THREE_GAIN)
+      printf("% got +%:3$\n", message.author.global_name, COLON_THREE_GAIN)
 
   stats[author_id]["message_count"] += 1
   if stats[author_id]["last_message"] < int(time()) - 30:
@@ -695,7 +695,7 @@ async def stats(ctx: discord.ApplicationContext, member: discord.Member = None):
     XP: `%/%`
     Hours muted: `%h`
     Messages: `%`
-    :3$: `%`
+   :3$: `%`
     """,
     stats[id]["level"],
     stats[id]["xp"],
@@ -734,8 +734,8 @@ async def top(ctx: discord.ApplicationContext, stat: str):
     unit = "h"
     embed.title = "Top by time spent muted"
   elif stat == "colonthreecurrency":
-    unit = " :3$"
-    embed.title = "Top by :3$"
+    unit = ":3$"
+    embed.title = "Top by:3$"
   else:
     await ctx.respond("how")
   stats = get_stats()
@@ -769,7 +769,14 @@ COINFLIP_CHOICES: list[str] = [
   "tails"
 ]
 
-@bot.slash_command(name="coinflip", description="gamble your :3$ to either lose or double them")
+def write_losses(amount: int):
+  with open("gambling-losses.json", "r") as f:
+    losses: dict = json.load(f)
+  losses["losses"] += amount
+  with open("gambling-losses.json", "w") as f:
+    json.dump(losses, f)
+
+@bot.slash_command(name="coinflip", description="gamble your:3$ to either lose or double them")
 async def coinflip(ctx: discord.ApplicationContext, amount: int):
   printf("% used command coinflip\n", ctx.author.global_name)
   stats = get_stats()
@@ -783,7 +790,7 @@ async def coinflip(ctx: discord.ApplicationContext, amount: int):
   if not next or next <= time():
     has_currency: int = stats[id]["colonthreecurrency"]
     if has_currency < amount:
-      embed.description = sprintf("you cant bet more than you have, you have % :3$", has_currency)
+      embed.description = sprintf("you cant bet more than you have, you have %:3$", has_currency)
       await ctx.respond(embed=embed)
       return
     stats[id]["colonthreecurrency"] -= amount 
@@ -791,11 +798,12 @@ async def coinflip(ctx: discord.ApplicationContext, amount: int):
     choice: str = random.choice(COINFLIP_CHOICES)
     if choice == "tails":
       stats[id]["colonthreecurrency"] += amount * 2
-      embed.description = sprintf("you won % :3$ and now have % :3$ !!", amount * 2, stats[id]["colonthreecurrency"])
+      embed.description = sprintf("you won %:3$ and now have %:3$ !!", amount * 2, stats[id]["colonthreecurrency"])
       embed.color = 0xff91ff
       await ctx.respond(embed=embed)
     else:
-      embed.description = sprintf("you lost your % :3$, you now have % :3$", amount, stats[id]["colonthreecurrency"])
+      write_losses(amount)
+      embed.description = sprintf("you lost your %:3$, you now have %:3$", amount, stats[id]["colonthreecurrency"])
       await ctx.respond(embed=embed)
     stats[id]["next_coinflip"] = int(time() + 60)
     write_stats(stats)
@@ -831,12 +839,12 @@ async def shop(ctx: discord.ApplicationContext, subcmd: str, arg: str|None = Non
   user_inventory: list = user_stats["inventory"]
   if subcmd == "list":
     embed: discord.Embed = discord.Embed(title="Shop: List", color=0xff91ff)
-    embed.description = sprintf("**__You have: % :3$__**\n", stats[user_id]["colonthreecurrency"])
+    embed.description = sprintf("**__You have: %:3$__**\n", stats[user_id]["colonthreecurrency"])
     for i in shop.keys():
       if i in user_inventory:
-        embed.description += sprintf("- ~~% - % : *%* :3$~~ OWNED\n", i, shop[i]["description"], shop[i]["price"])
+        embed.description += sprintf("- ~~% - % : *%*:3$~~ OWNED\n", i, shop[i]["description"], shop[i]["price"])
       else:
-        embed.description += sprintf("- % - % : *%* :3$\n", i, shop[i]["description"], shop[i]["price"])
+        embed.description += sprintf("- % - % : *%*:3$\n", i, shop[i]["description"], shop[i]["price"])
     await ctx.respond(embed=embed)
     return 
   elif subcmd == "buy":
@@ -857,12 +865,12 @@ async def shop(ctx: discord.ApplicationContext, subcmd: str, arg: str|None = Non
     item_price: int = item["price"]
     has_currency: int = stats[user_id]["colonthreecurrency"]
     if has_currency < item_price:
-      embed.description = sprintf("You cannot afford `%`, it costs % :3$ but you have % :3$", arg, item_price, has_currency)
+      embed.description = sprintf("You cannot afford `%`, it costs %:3$ but you have %:3$", arg, item_price, has_currency)
       await ctx.respond(embed=embed)
       return
     stats[user_id]["inventory"].append(arg)
     stats[user_id]["colonthreecurrency"] -= item_price
-    embed.description = sprintf("You have successfully bought `%` for % :3$!", arg, item_price)
+    embed.description = sprintf("You have successfully bought `%` for %:3$!", arg, item_price)
     embed.color = 0xff91ff
     write_stats(stats)
     await ctx.respond(embed=embed)
@@ -885,9 +893,20 @@ async def inv(ctx: discord.ApplicationContext):
     await ctx.respond(embed=embed)
     return
   for i in user_inventory:
-    embed.description += sprintf("- %", i)
+    embed.description += sprintf("- %\n", i)
   await ctx.respond(embed=embed)
+   
+def get_losses():
+  with open("gambling-losses.json", "r") as f:
+    losses: dict = json.load(f)
+  return losses
     
+@bot.slash_command(name="losses", description="how much the entire server has lost to gambling")
+async def losses(ctx: discord.ApplicationContext):
+  losses: dict = get_losses()
+  embed: discord.Embed = discord.Embed(title="Total Losses:", color=0xff0000)
+  embed.description = sprintf("The server has lost `%`:3$ to gambling... sad", losses["losses"])
+  await ctx.respond(embed=embed)
       
 bot.run(token)
 
