@@ -333,12 +333,19 @@ async def status_block(ctx: discord.ApplicationContext, member: discord.Member):
   embed.description = sprintf("% can no longer change len status", member.global_name)
   await ctx.respond(embed=embed)
 
-STATUS_WHITELIST: list[int] = [
-  355667035239481344,
-  808122595898556457
-]
-
 STATUS_CHANGE_COST: int = 150
+
+def change_status(text: str):
+  headers = { #TODO: make this a function
+    "Authorization": dct,
+    "Content-Type": "application/json"
+  }
+  payload = {
+    "custom_status": {
+      "text": text
+    }
+  }
+  requests.patch("https://discord.com/api/v10/users/@me/settings", headers=headers, json=payload)
 
 @bot.slash_command(name="status" ,description=sprintf("spend % :3$ to change len's status", STATUS_CHANGE_COST))
 async def status(ctx: discord.ApplicationContext, text: str):
@@ -352,47 +359,28 @@ async def status(ctx: discord.ApplicationContext, text: str):
     embed.color = 0xff0000
     await ctx.respond(embed=embed)
     return
-  if int(uid) not in STATUS_WHITELIST:
-    with open("status.json", "r") as f:
-      users = json.load(f)
-    if uid in users:
-      if users[uid] > int(time()):
-        embed.description = sprintf("you can do this again <t:%:R>", users[uid])
-        await ctx.respond(embed=embed)
-        return
-      has_currency: int = users[uid]["colonthreecurrency"] 
-      if has_currency < STATUS_CHANGE_COST:
-        embed.description = sprintf("you dont have enough :3$, you need % :3$, but have % :3$", STATUS_CHANGE_COST, has_currency)
-        await ctx.respond(embed=embed)
-        return
-    else:
-      embed.description = sprintf("you dont have enough :3$, you need % :3$, but have % :3$", STATUS_CHANGE_COST, 10)
-      await ctx.respond(embed=embed)
-      return
-    users[uid] = int(time()) + 86400
-    with open("status.json", "w") as f:
-      json.dump(users, f)
-      
-    users[uid]["colonthreecurrency"] -= 100
-    write_stats(users)
-  
+  stats: dict = get_stats()
+  user_stats = stats.get(uid, None)
+  if not user_stats:
+    embed.description = "Please send a message to generate ur stats"
+    embed.color = 0xff0000
+    await ctx.respond(embed=embed)
+    return
   if len(text) > 128:
     embed.description = "sorry, too long"
     embed.color = 0xff0000
     await ctx.respond(embed=embed)
     return
-  headers = { #TODO: make this a function
-    "Authorization": dct,
-    "Content-Type": "application/json"
-  }
-  payload = {
-    "custom_status": {
-      "text": text
-    }
-  }
+  if "infinite_status" not in user_stats["inventory"]:
+    has_currency: int = stats[uid]["colonthreecurrency"] 
+    if has_currency < STATUS_CHANGE_COST:
+      embed.description = sprintf("you dont have enough :3$, you need % :3$, but have % :3$", STATUS_CHANGE_COST, has_currency)
+      await ctx.respond(embed=embed)
+      return      
+    stats[uid]["colonthreecurrency"] -= STATUS_CHANGE_COST
+    write_stats(stats)
   with open("status.log", "a") as f:
    f.write(sprintf("\"%\" % \"%\"\n", ctx.author.global_name, str(time()), text))
-  requests.patch("https://discord.com/api/v10/users/@me/settings", headers=headers, json=payload)
   embed.description = sprintf("changed lens status to `%` lol", text)
   await ctx.respond(embed=embed)
 
@@ -414,7 +402,7 @@ async def song(ctx: discord.ApplicationContext):
   printf("% used command song\n", ctx.author.global_name)
   await ctx.send("https://www.youtube.com/watch?v=atdO6YRg5Cw")
 
-#:w@bot.slash_command(name="gambling" ,description="either nothing happens, or you get muted")
+#@bot.slash_command(name="gambling" ,description="either nothing happens, or you get muted")
 async def gambling(ctx: discord.ApplicationContext):
   printf("% used command gambling\n", ctx.author.global_name)
   embed: discord.Embed = discord.Embed(title="Lets go gambling!", color=0xff91ff)
@@ -490,6 +478,9 @@ async def ai(ctx: discord.ApplicationContext, text: str):
   embed.description = response.text
   await ctx.respond(embed=embed)
 
+COLON_THREE_COOLDOWN: int = 5
+COLON_THREE_GAIN: int = 2
+
 @bot.event
 async def on_message(message: discord.Message):
   if message.author.id == bot.user.id:
@@ -513,10 +504,12 @@ async def on_message(message: discord.Message):
     }
   
   if ":3" in message.content:
-    if stats[author_id]["last_message"] < int(time()) - 30:
-      stats[author_id]["colonthreecurrency"] += 1
+    next_colon_three = stats[author_id].get("next_colon_three")
+    if not next_colon_three or next_colon_three <= int(time()):
+      stats[author_id]["colonthreecurrency"] += COLON_THREE_GAIN
+      stats[author_id]["next_colon_three"] = int(time() + COLON_THREE_COOLDOWN)
       write_stats(stats)
-      printf("% got +1 :3$\n", message.author.global_name)
+      printf("% got +% :3$\n", message.author.global_name, COLON_THREE_GAIN)
 
   stats[author_id]["message_count"] += 1
   if stats[author_id]["last_message"] < int(time()) - 30:
@@ -713,7 +706,7 @@ async def stats(ctx: discord.ApplicationContext, member: discord.Member = None):
   )
   await ctx.respond(embed=embed)
 
-@bot.slash_command(name="top", description="top by xp and hours muted")
+@bot.slash_command(name="top", description="top users by a stat")
 @discord.option(
   name="stat",
   choices=[
@@ -786,24 +779,116 @@ async def coinflip(ctx: discord.ApplicationContext, amount: int):
     embed.description = sprintf("please send a message to initialize ur account first")
     await ctx.respond(embed=embed)
     return
-  has_currency: int = stats[id]["colonthreecurrency"]
-  if has_currency < amount:
-    embed.description = sprintf("you cant bet more than you have, you have % :3$", has_currency)
+  next = stats[id].get("next_coinflip", None)
+  if not next or next <= time():
+    has_currency: int = stats[id]["colonthreecurrency"]
+    if has_currency < amount:
+      embed.description = sprintf("you cant bet more than you have, you have % :3$", has_currency)
+      await ctx.respond(embed=embed)
+      return
+    stats[id]["colonthreecurrency"] -= amount 
+
+    choice: str = random.choice(COINFLIP_CHOICES)
+    if choice == "tails":
+      stats[id]["colonthreecurrency"] += amount * 2
+      embed.description = sprintf("you won % :3$ and now have % :3$ !!", amount * 2, stats[id]["colonthreecurrency"])
+      embed.color = 0xff91ff
+      await ctx.respond(embed=embed)
+    else:
+      embed.description = sprintf("you lost your % :3$, you now have % :3$", amount, stats[id]["colonthreecurrency"])
+      await ctx.respond(embed=embed)
+    stats[id]["next_coinflip"] = int(time() + 60)
+    write_stats(stats)
+  else:
+    embed.description = sprintf("you can do this again <t:%:R>", stats[id]["next_coinflip"])
+    await ctx.respond(embed=embed)
+
+def load_shop() -> dict:
+  with open("shop.json", "r") as f:
+    shop = json.load(f)
+  return shop
+
+@bot.slash_command(name="shop", description="interact with the shop")
+@discord.option(
+  name="subcmd",
+  choices=[
+      discord.OptionChoice(name="List", value="list"),
+      discord.OptionChoice(name="Buy", value="buy"),
+  ],
+  required=True
+)
+async def shop(ctx: discord.ApplicationContext, subcmd: str, arg: str|None = None):
+  printf("% used command shop\n", ctx.author.global_name)
+  shop: dict = load_shop()
+  stats: dict = get_stats()
+  user_id: str = str(ctx.author.id)
+  user_stats: dict = stats.get(user_id, None)
+  if not user_stats:
+    embed: discord.Embed = discord.Embed(title="Shop: List", color=0xff0000)
+    embed.description = "Please send a message to initialize your account"
     await ctx.respond(embed=embed)
     return
-  stats[id]["colonthreecurrency"] -= amount 
-  
-  choice: str = random.choice(COINFLIP_CHOICES)
-  if choice == "tails":
-    stats[id]["colonthreecurrency"] += amount * 2
-    embed.description = sprintf("you won % :3$ and now have % :3$ !!", amount * 2, stats[id]["colonthreecurrency"])
+  user_inventory: list = user_stats["inventory"]
+  if subcmd == "list":
+    embed: discord.Embed = discord.Embed(title="Shop: List", color=0xff91ff)
+    embed.description = sprintf("**__You have: % :3$__**\n", stats[user_id]["colonthreecurrency"])
+    for i in shop.keys():
+      if i in user_inventory:
+        embed.description += sprintf("- ~~% - % : *%* :3$~~ OWNED\n", i, shop[i]["description"], shop[i]["price"])
+      else:
+        embed.description += sprintf("- % - % : *%* :3$\n", i, shop[i]["description"], shop[i]["price"])
+    await ctx.respond(embed=embed)
+    return 
+  elif subcmd == "buy":
+    embed: discord.Embed = discord.Embed(title="Shop: Buy", color=0xff0000)
+    if not arg:
+      embed.description = "You forgot to say what you want to buy, use the List subcommand to find what exists :3"
+      await ctx.respond(embed=embed)
+      return
+    if arg not in shop.keys():
+      embed.description = sprintf("That item (%) doesn't exist in the shop!", arg)
+      await ctx.respond(embed=embed)
+      return
+    if arg in user_inventory:
+      embed.description = sprintf("You already own %!", arg)
+      await ctx.respond(embed=embed)
+      return
+    item: dict = shop[arg]
+    item_price: int = item["price"]
+    has_currency: int = stats[user_id]["colonthreecurrency"]
+    if has_currency < item_price:
+      embed.description = sprintf("You cannot afford `%`, it costs % :3$ but you have % :3$", arg, item_price, has_currency)
+      await ctx.respond(embed=embed)
+      return
+    stats[user_id]["inventory"].append(arg)
+    stats[user_id]["colonthreecurrency"] -= item_price
+    embed.description = sprintf("You have successfully bought `%` for % :3$!", arg, item_price)
     embed.color = 0xff91ff
+    write_stats(stats)
     await ctx.respond(embed=embed)
-  else:
-    embed.description = sprintf("you lost % :3$, you now have % :3$", amount, stats[id]["colonthreecurrency"])
+    
+@bot.slash_command(name="inv", description="view your inventory")
+async def inv(ctx: discord.ApplicationContext):
+  stats: dict = get_stats()
+  user_id: str = str(ctx.author.id)
+  user_stats: dict = stats.get(user_id, None)
+  embed: discord.Embed = discord.Embed(title="Inventory", color=0xff0000)
+  if not user_stats:
+    embed.description = "Please send a message to initialize your account"
     await ctx.respond(embed=embed)
-  write_stats(stats)
-
+    return
+  embed.color = 0xff91ff
+  embed.description = ""
+  user_inventory: list = user_stats["inventory"]
+  if len(user_inventory) == 0:
+    embed.description = "... empty ..."
+    await ctx.respond(embed=embed)
+    return
+  for i in user_inventory:
+    embed.description += sprintf("- %", i)
+  await ctx.respond(embed=embed)
+    
+      
 bot.run(token)
 
 #TODO: fix car detection
