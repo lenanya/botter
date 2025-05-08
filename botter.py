@@ -783,7 +783,7 @@ async def reminders_show(ctx: discord.ApplicationContext):
     return
   embed.description = ""
   for idx, i in enumerate(reminders):
-    embed.description += sprintf("#%: <@%> - `%` <t:%:R>", idx, i['user_id'], i['message'], i['when'])
+    embed.description += sprintf("#%: <@%> - `%` <t:%:R>\n", idx + 1, i['user_id'], i['message'], i['when'])
   await ctx.respond(embed=embed, allowed_mentions=discord.AllowedMentions(users=False))
 
 
