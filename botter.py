@@ -382,6 +382,7 @@ async def status(ctx: discord.ApplicationContext, text: str):
   with open("status.log", "a") as f:
    f.write(sprintf("\"%\" % \"%\"\n", ctx.author.global_name, str(time()), text))
   embed.description = sprintf("changed lens status to `%` lol", text)
+  change_status(text)
   await ctx.respond(embed=embed)
 
 @bot.slash_command(name="bot_status" ,description="change botters status (len only)")
