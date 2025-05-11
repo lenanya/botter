@@ -23,23 +23,25 @@ XP_PER_MUTE_HOUR_MULT: int = 25
 LENA: int = 808122595898556457
 
 GENERAL_CHANNEL: int = 1367249503593168978
-LOG_CHANNEL: int = 1367956487535595600
+LOG_CHANNEL: int = 1371076993919094906
 
 LEVEL_POWER: float = 2.7
 LEVEL_BASE_MULT: int = 5
 LEVEL_SECOND_MULT: int = 50
 LEVEL_BASE: int = 30
 
-COINFLIP_CHOICES: list[str] = ["heads","tails"]
-COINFLIP_COOLDOWN: int = 10
-COINFLIP_WIN_MULTIPLIER: int = 3
+COINFLIP_CHOICES: list[str] = ["heads","tails","heads","tails","heads","tails","heads","tails","heads","tails","heads","tails","heads","tails","heads","tails","heads","tails","heads","tails","heads","tails"]
+COINFLIP_COOLDOWN: int = 5
+COINFLIP_WIN_MULTIPLIER: int = 2
 
 COLON_THREE_COOLDOWN: int = 5
 COLON_THREE_GAIN: int = 2
 
+CAT_CURRENCY_GAIN: int = 1
+
 STARTER_CURRENCY_AMOUNT: int = 10
 
-STATUS_CHANGE_COST: int = 150
+STATUS_CHANGE_COST: int = 69420694206942069420694206942069420694206942069420
 STATUS_MAX_LENGTH: int = 128
 
 TOP_MAX_USERS: int = 15
@@ -49,6 +51,17 @@ MODERATOR_ROLE: str = "mod"
 
 #</constants>
 #<helpers>
+
+def create_stats() -> dict:
+  return {
+      "message_count": 0,
+      "xp": 0,
+      "time_muted": 0,
+      "last_message": 0,
+      "level": 0,
+      "colonthreecurrency": STARTER_CURRENCY_AMOUNT,
+      "inventory": {}
+    }
 
 def sprintf(fmt: str, *vaargs) -> str:
   ret: str = ""
@@ -104,7 +117,7 @@ def write_stats(stats: dict):
 
 
 def change_status(text: str):
-  headers = { #TODO: make this a function
+  headers = { 
     "Authorization": dct,
     "Content-Type": "application/json"
   }
@@ -141,6 +154,19 @@ def get_losses():
   with open("gambling-losses.json", "r") as f:
     losses: dict = json.load(f)
   return losses
+
+def write_gains(amount: int):
+  with open("gambling-gains.json", "r") as f:
+    gains: dict = json.load(f)
+  gains["gains"] += amount
+  with open("gambling-gains.json", "w") as f:
+    json.dump(gains, f)
+    
+    
+def get_gains():
+  with open("gambling-gains.json", "r") as f:
+    gains: dict = json.load(f)
+  return gains
 
 
 def load_shop() -> dict:
@@ -215,6 +241,14 @@ async def check_reminders():
   with open("reminders.json", "w") as f:
     json.dump(reminders, f)
 
+@tasks.loop(minutes=30)
+async def check_cat():
+  stats: dict = get_stats()
+  for user in stats.keys():
+    if "cat" in stats[user]["inventory"].keys():
+      stats[user]["colonthreecurrency"] += CAT_CURRENCY_GAIN * stats[user]["inventory"]["cat"]["amount"]
+  write_stats(stats)
+
 #</tasks>
 #<events>
 
@@ -231,14 +265,7 @@ async def on_message(message: discord.Message):
   stats = get_stats()
 
   if not author_id in stats:
-    stats[author_id] = {
-      "message_count": 0,
-      "xp": 0,
-      "time_muted": 0,
-      "last_message": 0,
-      "level": 0,
-      "colonthreecurrency": STARTER_CURRENCY_AMOUNT
-    }
+    stats[author_id] = create_stats()
   
   if ":3" in message.content:
     next_colon_three = stats[author_id].get("next_colon_three")
@@ -246,7 +273,7 @@ async def on_message(message: discord.Message):
       stats[author_id]["colonthreecurrency"] += COLON_THREE_GAIN
       stats[author_id]["next_colon_three"] = int(time() + COLON_THREE_COOLDOWN)
       write_stats(stats)
-      printf("% got +%:3$\n", message.author.global_name, COLON_THREE_GAIN)
+      printf("% got +%$:3\n", message.author.global_name, COLON_THREE_GAIN)
 
   stats[author_id]["message_count"] += 1
   if stats[author_id]["last_message"] < int(time()) - 30:
@@ -325,6 +352,10 @@ async def on_command_error(ctx: discord.ApplicationContext, error):
 @bot.event
 async def on_member_join(member: discord.Member):
   role = discord.utils.get(member.guild.roles, name=DEFAULT_ROLE)
+  stats: dict = get_stats()
+  user_id: str = str(member.id)
+  stats[user_id] = create_stats()
+  write_stats()
   await member.add_roles(role)
   await bot.get_channel(GENERAL_CHANNEL).send(sprintf("new member: <@%>, hiiii :3", member.id))
 
@@ -336,6 +367,7 @@ async def on_ready():
     await bot.get_channel(GENERAL_CHANNEL).send("hi chat i got restarted :3")
   await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="all of you"))
   check_reminders.start()
+  check_cat.start()
 
 #</events>
 #<disabled>
@@ -356,14 +388,7 @@ async def mute_me(ctx: discord.ApplicationContext):
   if id in stats:
     stats[id]["time_muted"] += 1
   else:
-    stats[id] = {
-      "time_muted": 1,
-      "message_count": 0,
-      "last_message": int(time()),
-      "xp": 0,
-      "level": 0,
-      "colonthreecurrency": STARTER_CURRENCY_AMOUNT
-    }
+    stats[id] = create_stats()
   
   write_stats(stats)
   
@@ -397,14 +422,7 @@ async def gambling(ctx: discord.ApplicationContext):
     if id in stats:
       stats[id]["time_muted"] += 1
     else:
-      stats[id] = {
-        "time_muted": 1,
-        "messages": 0,
-        "last_message": int(time()),
-        "xp": 0,
-        "level": 0,
-        "colonthreecurrency": STARTER_CURRENCY_AMOUNT
-      }
+      stats[id] = create_stats()
 
     write_stats(stats)
     embed.color = RED
@@ -473,13 +491,7 @@ async def megagambling(ctx: discord.ApplicationContext, stake: int):
     if id in stats:
       stats[id]["time_muted"] += timeout
     else:
-      stats[id] = {
-        "time_muted": timeout,
-        "message_count": 0,
-        "last_message": int(time()),
-        "xp": 0,
-        "level": 0
-      }
+      stats[id] = create_stats()
 
     write_stats(stats)
     embed.description = sprintf("ur muted for %h now, rip bozo\n(stake: %)", timeout, stake)
@@ -522,14 +534,14 @@ async def ping(ctx: discord.ApplicationContext): #TODO: wording
   await ctx.respond(embed=embed)
 
 
-@bot.slash_command(name="am_i_gay" ,description="tells you if you are gay")
+#@bot.slash_command(name="am_i_gay" ,description="tells you if you are gay")
 async def am_i_gay(ctx: discord.ApplicationContext):
   printf("% used command am_i_gay\n", ctx.author.global_name)
   embed: discord.Embed = discord.Embed(title="yes", color=PINK)
   await ctx.respond(embed=embed)
   
   
-@bot.slash_command(name="are_you_gay" ,description="tells you if the bot is gay")
+#@bot.slash_command(name="are_you_gay" ,description="tells you if the bot is gay")
 async def are_you_gay(ctx: discord.ApplicationContext):
   printf("% used command are_you_gay\n", ctx.author.global_name)
   embed: discord.Embed = discord.Embed(title="maybe", color=PINK)
@@ -537,7 +549,7 @@ async def are_you_gay(ctx: discord.ApplicationContext):
   await ctx.respond(embed=embed)
   
 
-@bot.slash_command(name="ban" ,description="bans a user")
+#@bot.slash_command(name="ban" ,description="bans a user")
 @commands.has_permissions(moderate_members=True) #TODO: only allow in guild
 async def ban(ctx: discord.ApplicationContext, member: discord.Member, reason: str):
   printf("% used command ban\n", ctx.author.global_name)
@@ -552,7 +564,7 @@ async def ban(ctx: discord.ApplicationContext, member: discord.Member, reason: s
   await ctx.respond(embed=embed)
 
 
-@bot.slash_command(name="kick" ,description="kicks a user")
+#@bot.slash_command(name="kick" ,description="kicks a user")
 @commands.has_permissions(moderate_members=True) #TODO: only allow in guild
 async def kick(ctx: discord.ApplicationContext, member: discord.Member, reason: str):
   printf("% used command kick\n", ctx.author.global_name)
@@ -567,7 +579,7 @@ async def kick(ctx: discord.ApplicationContext, member: discord.Member, reason: 
   await ctx.respond(embed=embed)
 
 
-@bot.slash_command(name="cpu" ,description="cpu load on len computer")
+#@bot.slash_command(name="cpu" ,description="cpu load on len computer")
 async def cpu(ctx: discord.ApplicationContext):
   printf("% used command cpu\n", ctx.author.global_name)
   cpu_load = psutil.cpu_percent(interval=1)
@@ -576,7 +588,7 @@ async def cpu(ctx: discord.ApplicationContext):
   await ctx.respond(embed=embed)
 
 
-@bot.slash_command(name="mem" ,description="ram on len computer")
+#@bot.slash_command(name="mem" ,description="ram on len computer")
 async def mem(ctx: discord.ApplicationContext):
   printf("% used command mem\n", ctx.author.global_name)
   mem = psutil.virtual_memory()
@@ -587,7 +599,7 @@ async def mem(ctx: discord.ApplicationContext):
   await ctx.respond(embed=embed)
 
 
-@bot.slash_command(name="membytes" ,description="ram usage in bytes for some reason")
+#@bot.slash_command(name="membytes" ,description="ram usage in bytes for some reason")
 async def membytes(ctx: discord.ApplicationContext):
   printf("% used command membytes\n", ctx.author.global_name)
   mem = psutil.virtual_memory()
@@ -596,7 +608,7 @@ async def membytes(ctx: discord.ApplicationContext):
   await ctx.respond(embed=embed)
 
 
-@bot.slash_command(name="disk" ,description="shows len root partition space")
+#@bot.slash_command(name="disk" ,description="shows len root partition space")
 async def disk(ctx: discord.ApplicationContext):
   printf("% used command disk\n", ctx.author.global_name)
   disk = psutil.disk_usage("/")
@@ -607,7 +619,7 @@ async def disk(ctx: discord.ApplicationContext):
   await ctx.respond(embed=embed)
 
 
-@bot.slash_command(name="os" ,description="shows len OS")
+#@bot.slash_command(name="os" ,description="shows len OS")
 async def os(ctx: discord.ApplicationContext):
   printf("% used command os\n", ctx.author.global_name)
   with open("/home/lena/arch_logo", 'r') as f:
@@ -632,7 +644,7 @@ async def nuh(ctx: discord.ApplicationContext):
   await ctx.respond("https://cdn.discordapp.com/attachments/1306832831988629528/1362111230155952188/car-garn47-397016279.gif?ex=6813a970&is=681257f0&hm=553b8456e1933ef8dba2be7e789e1dbea3475e3f5e44697c08c5a45d34ef5692&")
 
 
-@bot.slash_command(name="ip" ,description="get lenas local ip (why?)")
+#@bot.slash_command(name="ip" ,description="get lenas local ip (why?)")
 async def ip(ctx: discord.ApplicationContext):
   printf("% used command ip\n", ctx.author.global_name)
   embed: discord.Embed = discord.Embed(title="ip", color=PINK)
@@ -653,7 +665,7 @@ async def temperature(ctx: discord.ApplicationContext, fahrenheit: bool = False)
   await ctx.respond(embed=embed)
   
 
-@bot.slash_command(name="status_block" ,description="block user from using status (len only)")
+#@bot.slash_command(name="status_block" ,description="block user from using status (len only)")
 async def status_block(ctx: discord.ApplicationContext, member: discord.Member):
   printf("% used command status_block\n", ctx.author.global_name)
   embed: discord.Embed = discord.Embed(title="status block", color=RED)
@@ -670,7 +682,7 @@ async def status_block(ctx: discord.ApplicationContext, member: discord.Member):
   await ctx.respond(embed=embed)
 
 
-@bot.slash_command(name="status" ,description=sprintf("spend %:3$ to change len's status", STATUS_CHANGE_COST))
+#@bot.slash_command(name="status" ,description=sprintf("spend %$:3 to change len's status", STATUS_CHANGE_COST))
 async def status(ctx: discord.ApplicationContext, text: str):
   printf("% used command status\n", ctx.author.global_name)
   embed: discord.Embed = discord.Embed(title="change lens status", color=PINK)
@@ -685,10 +697,9 @@ async def status(ctx: discord.ApplicationContext, text: str):
   stats: dict = get_stats()
   user_stats = stats.get(uid, None)
   if not user_stats:
-    embed.description = "Please send a message to generate ur stats"
-    embed.color = RED
-    await ctx.respond(embed=embed)
-    return
+    stats[uid] = create_stats()
+    user_stats = stats[uid]
+    write_stats()
   if len(text) > STATUS_MAX_LENGTH:
     embed.description = "sorry, too long"
     embed.color = RED
@@ -697,7 +708,7 @@ async def status(ctx: discord.ApplicationContext, text: str):
   if "infinite_status" not in user_stats["inventory"]:
     has_currency: int = stats[uid]["colonthreecurrency"] 
     if has_currency < STATUS_CHANGE_COST:
-      embed.description = sprintf("you dont have enough:3$, you need %:3$, but have %:3$", STATUS_CHANGE_COST, has_currency)
+      embed.description = sprintf("you dont have enough$:3, you need %$:3, but have %$:3", STATUS_CHANGE_COST, has_currency)
       await ctx.respond(embed=embed)
       return      
     stats[uid]["colonthreecurrency"] -= STATUS_CHANGE_COST
@@ -709,7 +720,7 @@ async def status(ctx: discord.ApplicationContext, text: str):
   await ctx.respond(embed=embed)
 
 
-@bot.slash_command(name="bot_status" ,description="change botters status (len only)")
+#@bot.slash_command(name="bot_status" ,description="change botters status (len only)")
 async def bot_status(ctx: discord.ApplicationContext, text: str):
   printf("% used command bot_status\n", ctx.author.global_name)
   embed: discord.Embed = discord.Embed(title="change cars status", color=PINK)
@@ -755,6 +766,16 @@ async def car(ctx: discord.ApplicationContext):
 @bot.slash_command(name="reminder", description="create a reminder") #TODO: add support for timestamps
 async def reminder(ctx: discord.ApplicationContext, message: str, days: int = 0,hours: int = 0, minutes: int = 5):
   printf("% used command reminder\n", ctx.author.global_name)
+  if len(message) > 256:
+    embed: discord.Embed = discord.Embed(title="Reminder", color=RED)
+    embed.description = "Your message was too long, keep it below 256 characters"
+    await ctx.respond(embed=embed)
+    return
+  if days < 0 or hours < 0 or minutes < 0:
+    embed: discord.Embed = discord.Embed(title="Reminder", color=RED)
+    embed.description = "Can't remind you of something in the past, enter a positive number"
+    await ctx.respond(embed=embed)
+    return
   with open("reminders.json", "r") as f:
     reminders = json.load(f)
   when = int(time()) + days * DAY + hours * HOUR + minutes * MINUTE
@@ -767,7 +788,7 @@ async def reminder(ctx: discord.ApplicationContext, message: str, days: int = 0,
   with open("reminders.json", "w") as f:
     json.dump(reminders, f)
   embed: discord.Embed = discord.Embed(title="Created Reminder", color=PINK)
-  embed.description = sprintf("`%`, <t:%:R>", message, when)
+  embed.description = sprintf("`%`,  <t:%:R>", message, when)
   await ctx.respond(embed=embed)
 
 
@@ -798,14 +819,8 @@ async def stats(ctx: discord.ApplicationContext, member: discord.Member = None):
     name: str = ctx.author.global_name
   stats = get_stats()
   if not id in stats:
-    stats[id] = {
-      "time_muted": 0,
-      "message_count": 0,
-      "last_message": int(time()),
-      "xp": 0,
-      "level": 0,
-      "colonthreecurrency": STARTER_CURRENCY_AMOUNT
-    }
+    stats[id] = create_stats()
+    write_stats()
   embed: discord.Embed = discord.Embed(title=sprintf("Stats of %", name), color=PINK)
   embed.description = sprintf(
     """
@@ -813,7 +828,7 @@ async def stats(ctx: discord.ApplicationContext, member: discord.Member = None):
     XP: `%/%`
     Hours muted: `%h`
     Messages: `%`
-   :3$: `%`
+    $:3: `%`
     """,
     stats[id]["level"],
     stats[id]["xp"],
@@ -833,7 +848,7 @@ async def stats(ctx: discord.ApplicationContext, member: discord.Member = None):
       discord.OptionChoice(name="Messages", value="message_count"),
       discord.OptionChoice(name="Level", value="level"),
       discord.OptionChoice(name="Time spent muted", value="time_muted"),
-      discord.OptionChoice(name=":3$", value="colonthreecurrency")
+      discord.OptionChoice(name="$:3", value="colonthreecurrency")
   ],
   required=True
 )
@@ -853,8 +868,8 @@ async def top(ctx: discord.ApplicationContext, stat: str):
     unit = "h"
     embed.title = "Top by time spent muted"
   elif stat == "colonthreecurrency":
-    unit = ":3$"
-    embed.title = "Top by:3$"
+    unit = "$:3"
+    embed.title = "Top by $:3"
   else:
     await ctx.respond("how")
   stats = get_stats()
@@ -867,35 +882,48 @@ async def top(ctx: discord.ApplicationContext, stat: str):
   await ctx.respond(embed=embed)
 
 
-@bot.slash_command(name="coinflip", description="gamble your:3$ to either lose or double them")
-async def coinflip(ctx: discord.ApplicationContext, amount: int):
+@bot.slash_command(name="coinflip", description="gamble your$:3 to either lose or double them")
+@discord.option(
+  name="choice",
+  choices=[
+      discord.OptionChoice(name="Heads", value="heads"),
+      discord.OptionChoice(name="Tails", value="tails")
+  ],
+  required=True
+)
+async def coinflip(ctx: discord.ApplicationContext, amount: int, choice: str):
   printf("% used command coinflip\n", ctx.author.global_name)
+  if amount <= 0:
+    embed: discord.Embed = discord.Embed(title="Nice try.", color=RED)
+    embed.description = "Enter a number larger than 0 next time."
+    await ctx.respond(embed=embed)
+    return
   stats = get_stats()
   id = str(ctx.author.id)
   embed: discord.Embed = discord.Embed(title="Coinflip", color=RED)
   if id not in stats:
-    embed.description = sprintf("please send a message to initialize ur account first")
-    await ctx.respond(embed=embed)
-    return
+    stats[id] = create_stats()
+    write_stats()
   next = stats[id].get("next_coinflip", None)
   if not next or next <= time():
     has_currency: int = stats[id]["colonthreecurrency"]
     if has_currency < amount:
-      embed.description = sprintf("you cant bet more than you have, you have %:3$", has_currency)
+      embed.description = sprintf("you cant bet more than you have, you have %$:3", has_currency)
       await ctx.respond(embed=embed)
       return
-    stats[id]["colonthreecurrency"] -= amount 
+    stats[id]["colonthreecurrency"] -= abs(amount)
 
-    choice: str = random.choice(COINFLIP_CHOICES)
-    if choice == "tails":
+    win_choice: str = random.choice(COINFLIP_CHOICES)
+    if win_choice == choice:
+      write_gains(amount * COINFLIP_WIN_MULTIPLIER - amount)
       winnings: int = round(amount * COINFLIP_WIN_MULTIPLIER)
       stats[id]["colonthreecurrency"] += winnings
-      embed.description = sprintf("you won %:3$ and now have %:3$ !!", winnings, stats[id]["colonthreecurrency"])
+      embed.description = sprintf("you won %$:3 and now have %$:3 !!", winnings, stats[id]["colonthreecurrency"])
       embed.color = PINK
       await ctx.respond(embed=embed)
     else:
       write_losses(amount)
-      embed.description = sprintf("you lost your %:3$, you now have %:3$", amount, stats[id]["colonthreecurrency"])
+      embed.description = sprintf("you lost your %$:3, you now have %$:3", amount, stats[id]["colonthreecurrency"])
       await ctx.respond(embed=embed)
     stats[id]["next_coinflip"] = int(time() + COINFLIP_COOLDOWN)
     write_stats(stats)
@@ -920,19 +948,18 @@ async def shop(ctx: discord.ApplicationContext, subcmd: str, arg: str|None = Non
   user_id: str = str(ctx.author.id)
   user_stats: dict = stats.get(user_id, None)
   if not user_stats:
-    embed: discord.Embed = discord.Embed(title="Shop: List", color=RED)
-    embed.description = "Please send a message to initialize your account"
-    await ctx.respond(embed=embed)
-    return
-  user_inventory: list = user_stats["inventory"]
+    stats[user_id] = create_stats()
+    user_stats = stats[user_id]
+    write_stats()
+  user_inventory: dict = user_stats["inventory"]
   if subcmd == "list":
     embed: discord.Embed = discord.Embed(title="Shop: List", color=PINK)
-    embed.description = sprintf("**__You have: %:3$__**\n", stats[user_id]["colonthreecurrency"])
+    embed.description = sprintf("**__You have: %$:3__**\n", stats[user_id]["colonthreecurrency"])
     for i in shop.keys():
-      if i in user_inventory:
-        embed.description += sprintf("- ~~% - % : *%*:3$~~ OWNED\n", i, shop[i]["description"], shop[i]["price"])
+      if i in user_inventory.keys():
+        embed.description += sprintf("- % - % : *%*$:3 - [% OWNED]\n", i, shop[i]["description"], shop[i]["price"], user_inventory[i]["amount"])
       else:
-        embed.description += sprintf("- % - % : *%*:3$\n", i, shop[i]["description"], shop[i]["price"])
+        embed.description += sprintf("- % - % : *%*$:3\n", i, shop[i]["description"], shop[i]["price"])
     await ctx.respond(embed=embed)
     return 
   elif subcmd == "buy":
@@ -945,20 +972,18 @@ async def shop(ctx: discord.ApplicationContext, subcmd: str, arg: str|None = Non
       embed.description = sprintf("That item (%) doesn't exist in the shop!", arg)
       await ctx.respond(embed=embed)
       return
-    if arg in user_inventory:
-      embed.description = sprintf("You already own %!", arg)
-      await ctx.respond(embed=embed)
-      return
     item: dict = shop[arg]
     item_price: int = item["price"]
     has_currency: int = stats[user_id]["colonthreecurrency"]
     if has_currency < item_price:
-      embed.description = sprintf("You cannot afford `%`, it costs %:3$ but you have %:3$", arg, item_price, has_currency)
+      embed.description = sprintf("You cannot afford `%`, it costs %$:3 but you have %$:3", arg, item_price, has_currency)
       await ctx.respond(embed=embed)
       return
-    stats[user_id]["inventory"].append(arg)
+    if arg not in stats[user_id]["inventory"].keys():
+      stats[user_id]["inventory"][arg] = {"amount": 0}
+    stats[user_id]["inventory"][arg]["amount"] += 1
     stats[user_id]["colonthreecurrency"] -= item_price
-    embed.description = sprintf("You have successfully bought `%` for %:3$!", arg, item_price)
+    embed.description = sprintf("You have successfully bought `%` for %$:3!", arg, item_price)
     embed.color = PINK
     write_stats(stats)
     await ctx.respond(embed=embed)
@@ -971,18 +996,18 @@ async def inv(ctx: discord.ApplicationContext):
   user_stats: dict = stats.get(user_id, None)
   embed: discord.Embed = discord.Embed(title="Inventory", color=RED)
   if not user_stats:
-    embed.description = "Please send a message to initialize your account"
-    await ctx.respond(embed=embed)
-    return
+    stats[user_id] = create_stats()
+    user_stats = stats[user_id]
+    write_stats()
   embed.color = PINK
   embed.description = ""
-  user_inventory: list = user_stats["inventory"]
-  if len(user_inventory) == 0:
+  user_inventory: dict = user_stats["inventory"]
+  if len(user_inventory.keys()) == 0:
     embed.description = "... empty ..."
     await ctx.respond(embed=embed)
     return
-  for i in user_inventory:
-    embed.description += sprintf("- %\n", i)
+  for i in user_inventory.keys():
+    embed.description += sprintf("- %: %\n", i, user_inventory[i]["amount"])
   await ctx.respond(embed=embed)
    
 
@@ -990,7 +1015,14 @@ async def inv(ctx: discord.ApplicationContext):
 async def losses(ctx: discord.ApplicationContext):
   losses: dict = get_losses()
   embed: discord.Embed = discord.Embed(title="Total Losses:", color=RED)
-  embed.description = sprintf("The server has lost `%`:3$ to gambling... sad", losses["losses"])
+  embed.description = sprintf("The server has lost `%`$:3 to gambling... sad", losses["losses"])
+  await ctx.respond(embed=embed)
+
+@bot.slash_command(name="gains", description="how much the entire server has gained from gambling")
+async def gains(ctx: discord.ApplicationContext):
+  gains: dict = get_gains()
+  embed: discord.Embed = discord.Embed(title="Total gains:", color=PINK)
+  embed.description = sprintf("The server has gained `%`$:3 from gambling", gains["gains"])
   await ctx.respond(embed=embed)
 
 #</commands>
