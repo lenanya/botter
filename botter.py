@@ -257,12 +257,12 @@ async def check_cat():
 #</tasks>
 #<events>
 
-@bot.event
-async def on_member_update(before: discord.Member, after: discord.Member):
-  if before.id == 777214393380503564:
-    if before.nick != after.nick:
-      printf("nuh uh roxy")
-      after.edit(nick="worlds most useful lesbian")    
+#@bot.event
+#async def on_member_update(before: discord.Member, after: discord.Member):
+#  if before.id == 777214393380503564:
+#    if before.nick != after.nick:
+#      printf("nuh uh roxy\n")
+#      await after.edit(nick="worlds most useful lesbian")    
 
 
 @bot.event
