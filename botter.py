@@ -21,6 +21,9 @@ PINK: int = 0xff91ff
 XP_PER_MUTE_HOUR_MULT: int = 25
 
 LENA: int = 808122595898556457
+TORSTEN: int = 251437568388759552
+SPIDDY: int = 142581648301490176
+
 
 GENERAL_CHANNEL: int = 1367249503593168978
 LOG_CHANNEL: int = 1371076993919094906
@@ -31,8 +34,8 @@ LEVEL_SECOND_MULT: int = 50
 LEVEL_BASE: int = 30
 
 COINFLIP_CHOICES: list[str] = ["heads","tails","heads","tails","heads","tails","heads","tails","heads","tails","heads","tails","heads","tails","heads","tails","heads","tails","heads","tails","heads","tails"]
-COINFLIP_COOLDOWN: int = 5
-COINFLIP_WIN_MULTIPLIER: int = 2
+COINFLIP_COOLDOWN: int = 0
+COINFLIP_WIN_MULTIPLIER: float = 2.5
 
 COLON_THREE_COOLDOWN: int = 5
 COLON_THREE_GAIN: int = 2
@@ -240,6 +243,7 @@ async def check_reminders():
       reminders.pop(idx)
   with open("reminders.json", "w") as f:
     json.dump(reminders, f)
+    
 
 @tasks.loop(minutes=30)
 async def check_cat():
@@ -249,8 +253,17 @@ async def check_cat():
       stats[user]["colonthreecurrency"] += CAT_CURRENCY_GAIN * stats[user]["inventory"]["cat"]["amount"]
   write_stats(stats)
 
+
 #</tasks>
 #<events>
+
+@bot.event
+async def on_member_update(before: discord.Member, after: discord.Member):
+  if before.id == 777214393380503564:
+    if before.nick != after.nick:
+      printf("nuh uh roxy")
+      after.edit(nick="worlds most useful lesbian")    
+
 
 @bot.event
 async def on_message(message: discord.Message):
@@ -259,7 +272,11 @@ async def on_message(message: discord.Message):
 
   if not isinstance(message.author, discord.Member):
     return
-  
+  if len(message.attachments) > 0:
+    if message.author.id == TORSTEN:
+        await message.add_reaction("🔥")
+    if message.author.id == SPIDDY:
+      await message.add_reaction("🤑")
   author_id: str = str(message.author.id)
 
   stats = get_stats()
@@ -355,7 +372,7 @@ async def on_member_join(member: discord.Member):
   stats: dict = get_stats()
   user_id: str = str(member.id)
   stats[user_id] = create_stats()
-  write_stats()
+  write_stats(stats)
   await member.add_roles(role)
   await bot.get_channel(GENERAL_CHANNEL).send(sprintf("new member: <@%>, hiiii :3", member.id))
 
@@ -699,7 +716,7 @@ async def status(ctx: discord.ApplicationContext, text: str):
   if not user_stats:
     stats[uid] = create_stats()
     user_stats = stats[uid]
-    write_stats()
+    write_stats(stats)
   if len(text) > STATUS_MAX_LENGTH:
     embed.description = "sorry, too long"
     embed.color = RED
@@ -820,7 +837,7 @@ async def stats(ctx: discord.ApplicationContext, member: discord.Member = None):
   stats = get_stats()
   if not id in stats:
     stats[id] = create_stats()
-    write_stats()
+    write_stats(stats)
   embed: discord.Embed = discord.Embed(title=sprintf("Stats of %", name), color=PINK)
   embed.description = sprintf(
     """
@@ -872,6 +889,7 @@ async def top(ctx: discord.ApplicationContext, stat: str):
     embed.title = "Top by $:3"
   else:
     await ctx.respond("how")
+    return
   stats = get_stats()
   stats_sorted = sorted(stats.items(), key=lambda item: item[1][stat], reverse=True)
   embed.description = ""
@@ -892,7 +910,7 @@ async def top(ctx: discord.ApplicationContext, stat: str):
   required=True
 )
 async def coinflip(ctx: discord.ApplicationContext, amount: int, choice: str):
-  printf("% used command coinflip\n", ctx.author.global_name)
+  printf("% used command coinflip and bet %\n", ctx.author.global_name, amount)
   if amount <= 0:
     embed: discord.Embed = discord.Embed(title="Nice try.", color=RED)
     embed.description = "Enter a number larger than 0 next time."
@@ -903,7 +921,7 @@ async def coinflip(ctx: discord.ApplicationContext, amount: int, choice: str):
   embed: discord.Embed = discord.Embed(title="Coinflip", color=RED)
   if id not in stats:
     stats[id] = create_stats()
-    write_stats()
+    write_stats(stats)
   next = stats[id].get("next_coinflip", None)
   if not next or next <= time():
     has_currency: int = stats[id]["colonthreecurrency"]
@@ -915,10 +933,10 @@ async def coinflip(ctx: discord.ApplicationContext, amount: int, choice: str):
 
     win_choice: str = random.choice(COINFLIP_CHOICES)
     if win_choice == choice:
-      write_gains(amount * COINFLIP_WIN_MULTIPLIER - amount)
       winnings: int = round(amount * COINFLIP_WIN_MULTIPLIER)
+      write_gains(round(winnings - amount))
       stats[id]["colonthreecurrency"] += winnings
-      embed.description = sprintf("you won %$:3 and now have %$:3 !!", winnings, stats[id]["colonthreecurrency"])
+      embed.description = sprintf("you won %$:3 and now have %$:3 !!", winnings - amount, stats[id]["colonthreecurrency"])
       embed.color = PINK
       await ctx.respond(embed=embed)
     else:
@@ -950,7 +968,7 @@ async def shop(ctx: discord.ApplicationContext, subcmd: str, arg: str|None = Non
   if not user_stats:
     stats[user_id] = create_stats()
     user_stats = stats[user_id]
-    write_stats()
+    write_stats(stats)
   user_inventory: dict = user_stats["inventory"]
   if subcmd == "list":
     embed: discord.Embed = discord.Embed(title="Shop: List", color=PINK)
@@ -998,7 +1016,7 @@ async def inv(ctx: discord.ApplicationContext):
   if not user_stats:
     stats[user_id] = create_stats()
     user_stats = stats[user_id]
-    write_stats()
+    write_stats(stats)
   embed.color = PINK
   embed.description = ""
   user_inventory: dict = user_stats["inventory"]
