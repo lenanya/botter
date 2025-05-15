@@ -8,8 +8,12 @@ import random
 from google import genai
 from time import time
 from sys import argv
+from asyncio import Lock
+
 
 #<constants>
+
+STAT_FILE: str = "stats.json"
 
 DAY: int = 86400
 HOUR: int = 3600
@@ -33,7 +37,7 @@ LEVEL_BASE_MULT: int = 5
 LEVEL_SECOND_MULT: int = 50
 LEVEL_BASE: int = 30
 
-COINFLIP_CHOICES: list[str] = ["heads","tails","heads","tails","heads","tails","heads","tails","heads","tails","heads","tails","heads","tails","heads","tails","heads","tails","heads","tails","heads","tails"]
+COINFLIP_CHOICES: list[str] = ["heads", "tails"]
 COINFLIP_COOLDOWN: int = 0
 COINFLIP_WIN_MULTIPLIER: float = 2.5
 
@@ -225,6 +229,8 @@ prompt = """
 <Information>
 """
 
+stat_lock: Lock = Lock()
+
 #</globals>
 #<tasks>
 
@@ -272,70 +278,74 @@ async def on_message(message: discord.Message):
 
   if not isinstance(message.author, discord.Member):
     return
+  
   if len(message.attachments) > 0:
     if message.author.id == TORSTEN:
         await message.add_reaction("🔥")
     if message.author.id == SPIDDY:
       await message.add_reaction("🤑")
   author_id: str = str(message.author.id)
+  async with stat_lock:
+    stats = get_stats()
 
-  stats = get_stats()
+    if not author_id in stats:
+      stats[author_id] = create_stats()
 
-  if not author_id in stats:
-    stats[author_id] = create_stats()
-  
-  if ":3" in message.content:
-    next_colon_three = stats[author_id].get("next_colon_three")
-    if not next_colon_three or next_colon_three <= int(time()):
-      stats[author_id]["colonthreecurrency"] += COLON_THREE_GAIN
-      stats[author_id]["next_colon_three"] = int(time() + COLON_THREE_COOLDOWN)
-      write_stats(stats)
-      printf("% got +%$:3\n", message.author.global_name, COLON_THREE_GAIN)
+    if ":3" in message.content:
+      next_colon_three = stats[author_id].get("next_colon_three")
+      if not next_colon_three or next_colon_three <= int(time()):
+        mult: int = 1
+        if ":4" in stats[author_id]["inventory"]:
+          mult = stats[author_id]["inventory"][":4"]["amount"] + 1
+        stats[author_id]["colonthreecurrency"] += COLON_THREE_GAIN * mult
+        stats[author_id]["next_colon_three"] = int(time() + COLON_THREE_COOLDOWN)
+        write_stats(stats)
+        printf("% got +%$:3\n", message.author.global_name, COLON_THREE_GAIN * mult)
 
-  stats[author_id]["message_count"] += 1
-  if stats[author_id]["last_message"] < int(time()) - 30:
-    giga_gambling: int = random.randint(0, 3000)
-    if giga_gambling == 69:
-      stats[author_id]["xp"] += 690;
-      await message.reply("HOLY FUCK YOU GOT THE 1/3001 AND GOT 690XP!!!")
+    stats[author_id]["message_count"] += 1
+    if stats[author_id]["last_message"] < int(time()) - 30:
+      giga_gambling: int = random.randint(0, 3000)
+      if giga_gambling == 69:
+        stats[author_id]["xp"] += 690;
+        await message.reply("HOLY FUCK YOU GOT THE 1/3001 AND GOT 690XP!!!")
 
-    stats[author_id]["last_message"] = int(time())
-    stats[author_id]["xp"] += random.randint(15, 30)
-    if stats[author_id]["xp"] > level_threshhold(stats[author_id]["level"] + 1):
-      stats[author_id]["level"] += 1
-  
-  
-  if stats[author_id]["level"] >= 5:
-    role = discord.utils.get(message.author.guild.roles, name="lvl5")
-    if not message.author.get_role(role.id):
-      await message.author.add_roles(role)
-  if stats[author_id]["level"] >= 10:
-    role = discord.utils.get(message.author.guild.roles, name="lvl10")
-    if not message.author.get_role(role.id):
-      await message.author.add_roles(role)
-  if stats[author_id]["level"] >= 15:
-    role = discord.utils.get(message.author.guild.roles, name="lvl15")
-    if not message.author.get_role(role.id):
-      await message.author.add_roles(role)
-  if stats[author_id]["level"] >= 20:
-    role = discord.utils.get(message.author.guild.roles, name="lvl20")
-    if not message.author.get_role(role.id):
-      await message.author.add_roles(role)
-  
-  write_stats(stats)
-  
-  if message.reference and message.reference.resolved:
-    if message.reference.resolved.author.id == bot.user.id:
-      if "fuck you" in message.content.lower() or "fuck u" in message.content.lower():
-        await message.author.timeout_for(timedelta(minutes=5), reason="insulted car")
-        await message.delete()
-        return
-  if "car " in message.content.lower() or message.content.lower() == "car": #TODO: fix detection
-    await message.reply("hiii that me :3")
-  elif "meow" in message.content.lower():
-    await message.reply("meow :3")
-  elif "good bot" in message.content.lower():
-    await message.reply("uwu")
+      stats[author_id]["last_message"] = int(time())
+      stats[author_id]["xp"] += random.randint(15, 30)
+      if stats[author_id]["xp"] > level_threshhold(stats[author_id]["level"] + 1):
+        stats[author_id]["level"] += 1
+
+
+    if stats[author_id]["level"] >= 5:
+      role = discord.utils.get(message.author.guild.roles, name="lvl5")
+      if not message.author.get_role(role.id):
+        await message.author.add_roles(role)
+    if stats[author_id]["level"] >= 10:
+      role = discord.utils.get(message.author.guild.roles, name="lvl10")
+      if not message.author.get_role(role.id):
+        await message.author.add_roles(role)
+    if stats[author_id]["level"] >= 15:
+      role = discord.utils.get(message.author.guild.roles, name="lvl15")
+      if not message.author.get_role(role.id):
+        await message.author.add_roles(role)
+    if stats[author_id]["level"] >= 20:
+      role = discord.utils.get(message.author.guild.roles, name="lvl20")
+      if not message.author.get_role(role.id):
+        await message.author.add_roles(role)
+
+    write_stats(stats)
+
+    if message.reference and message.reference.resolved:
+      if message.reference.resolved.author.id == bot.user.id:
+        if "fuck you" in message.content.lower() or "fuck u" in message.content.lower():
+          await message.author.timeout_for(timedelta(minutes=5), reason="insulted car")
+          await message.delete()
+          return
+    if "car " in message.content.lower() or message.content.lower() == "car": #TODO: fix detection
+      await message.reply("hiii that me :3")
+    elif "meow" in message.content.lower():
+      await message.reply("meow :3")
+    elif "good bot" in message.content.lower():
+      await message.reply("uwu")
 
 
 @bot.event
@@ -368,13 +378,14 @@ async def on_command_error(ctx: discord.ApplicationContext, error):
 
 @bot.event
 async def on_member_join(member: discord.Member):
-  role = discord.utils.get(member.guild.roles, name=DEFAULT_ROLE)
-  stats: dict = get_stats()
-  user_id: str = str(member.id)
-  stats[user_id] = create_stats()
-  write_stats(stats)
-  await member.add_roles(role)
-  await bot.get_channel(GENERAL_CHANNEL).send(sprintf("new member: <@%>, hiiii :3", member.id))
+  async with stat_lock:
+    role = discord.utils.get(member.guild.roles, name=DEFAULT_ROLE)
+    stats: dict = get_stats()
+    user_id: str = str(member.id)
+    stats[user_id] = create_stats()
+    write_stats(stats)
+    await member.add_roles(role)
+    await bot.get_channel(GENERAL_CHANNEL).send(sprintf("new member: <@%>, hiiii :3", member.id))
 
 
 @bot.event
@@ -826,7 +837,7 @@ async def reminders_show(ctx: discord.ApplicationContext):
 
 
 @bot.slash_command(name="stats", description="show your or someone elses stats")
-async def stats(ctx: discord.ApplicationContext, member: discord.Member = None):
+async def stats(ctx: discord.ApplicationContext, member: discord.Member | None = None):
   printf("% used command stats\n", ctx.author.global_name)
   if member:
     id: str = str(member.id)
@@ -834,38 +845,39 @@ async def stats(ctx: discord.ApplicationContext, member: discord.Member = None):
   else:
     id: str = str(ctx.author.id)
     name: str = ctx.author.global_name
-  stats = get_stats()
-  if not id in stats:
-    stats[id] = create_stats()
-    write_stats(stats)
-  embed: discord.Embed = discord.Embed(title=sprintf("Stats of %", name), color=PINK)
-  embed.description = sprintf(
-    """
-    Level: `%`
-    XP: `%/%`
-    Hours muted: `%h`
-    Messages: `%`
-    $:3: `%`
-    """,
-    stats[id]["level"],
-    stats[id]["xp"],
-    level_threshhold(stats[id]["level"] + 1),
-    stats[id]["time_muted"],
-    stats[id]["message_count"],
-    stats[id]["colonthreecurrency"]
-  )
-  await ctx.respond(embed=embed)
+  async with stat_lock:
+    stats = get_stats()
+    if not id in stats:
+      stats[id] = create_stats()
+      write_stats(stats)
+    embed: discord.Embed = discord.Embed(title=sprintf("Stats of %", name), color=PINK)
+    embed.description = sprintf(
+      """
+      Level: `%`
+      XP: `%/%`
+      Hours muted: `%h`
+      Messages: `%`
+      $:3: `%`
+      """,
+      stats[id]["level"],
+      stats[id]["xp"],
+      level_threshhold(stats[id]["level"] + 1),
+      stats[id]["time_muted"],
+      stats[id]["message_count"],
+      stats[id]["colonthreecurrency"]
+    )
+    await ctx.respond(embed=embed)
 
 
 @bot.slash_command(name="top", description="top users by a stat")
 @discord.option(
   name="stat",
   choices=[
-      discord.OptionChoice(name="XP", value="xp"),
-      discord.OptionChoice(name="Messages", value="message_count"),
-      discord.OptionChoice(name="Level", value="level"),
-      discord.OptionChoice(name="Time spent muted", value="time_muted"),
-      discord.OptionChoice(name="$:3", value="colonthreecurrency")
+    discord.OptionChoice(name="XP", value="xp"),
+    discord.OptionChoice(name="Messages", value="message_count"),
+    discord.OptionChoice(name="Level", value="level"),
+    discord.OptionChoice(name="Time spent muted", value="time_muted"),
+    discord.OptionChoice(name="$:3", value="colonthreecurrency")
   ],
   required=True
 )
@@ -890,22 +902,23 @@ async def top(ctx: discord.ApplicationContext, stat: str):
   else:
     await ctx.respond("how")
     return
-  stats = get_stats()
-  stats_sorted = sorted(stats.items(), key=lambda item: item[1][stat], reverse=True)
-  embed.description = ""
-  for idx, (id, user) in enumerate(stats_sorted):
-    if idx >= TOP_MAX_USERS:
-      break
-    embed.description += sprintf("**#%**: <@%> - %%\n", idx + 1, id, user[stat], unit)
-  await ctx.respond(embed=embed)
+  async with stat_lock:
+    stats = get_stats()
+    stats_sorted = sorted(stats.items(), key=lambda item: item[1][stat], reverse=True)
+    embed.description = ""
+    for idx, (id, user) in enumerate(stats_sorted):
+      if idx >= TOP_MAX_USERS:
+        break
+      embed.description += sprintf("**#%**: <@%> - %%\n", idx + 1, id, user[stat], unit)
+    await ctx.respond(embed=embed)
 
 
 @bot.slash_command(name="coinflip", description="gamble your$:3 to either lose or double them")
 @discord.option(
   name="choice",
   choices=[
-      discord.OptionChoice(name="Heads", value="heads"),
-      discord.OptionChoice(name="Tails", value="tails")
+    discord.OptionChoice(name="Heads", value="heads"),
+    discord.OptionChoice(name="Tails", value="tails")
   ],
   required=True
 )
@@ -916,38 +929,39 @@ async def coinflip(ctx: discord.ApplicationContext, amount: int, choice: str):
     embed.description = "Enter a number larger than 0 next time."
     await ctx.respond(embed=embed)
     return
-  stats = get_stats()
-  id = str(ctx.author.id)
-  embed: discord.Embed = discord.Embed(title="Coinflip", color=RED)
-  if id not in stats:
-    stats[id] = create_stats()
-    write_stats(stats)
-  next = stats[id].get("next_coinflip", None)
-  if not next or next <= time():
-    has_currency: int = stats[id]["colonthreecurrency"]
-    if has_currency < amount:
-      embed.description = sprintf("you cant bet more than you have, you have %$:3", has_currency)
-      await ctx.respond(embed=embed)
-      return
-    stats[id]["colonthreecurrency"] -= abs(amount)
+  async with stat_lock:
+    stats = get_stats()
+    id = str(ctx.author.id)
+    embed: discord.Embed = discord.Embed(title="Coinflip", color=RED)
+    if id not in stats:
+      stats[id] = create_stats()
+      write_stats(stats)
+    next = stats[id].get("next_coinflip", None)
+    if not next or next <= time():
+      has_currency: int = stats[id]["colonthreecurrency"]
+      if has_currency < amount:
+        embed.description = sprintf("you cant bet more than you have, you have %$:3", has_currency)
+        await ctx.respond(embed=embed)
+        return
+      stats[id]["colonthreecurrency"] -= abs(amount)
 
-    win_choice: str = random.choice(COINFLIP_CHOICES)
-    if win_choice == choice:
-      winnings: int = round(amount * COINFLIP_WIN_MULTIPLIER)
-      write_gains(round(winnings - amount))
-      stats[id]["colonthreecurrency"] += winnings
-      embed.description = sprintf("you won %$:3 and now have %$:3 !!", winnings - amount, stats[id]["colonthreecurrency"])
-      embed.color = PINK
-      await ctx.respond(embed=embed)
+      win_choice: str = random.choice(COINFLIP_CHOICES)
+      if win_choice == choice:
+        winnings: int = round(amount * COINFLIP_WIN_MULTIPLIER)
+        write_gains(round(winnings - amount))
+        stats[id]["colonthreecurrency"] += winnings
+        embed.description = sprintf("you won %$:3 and now have %$:3 !!", winnings - amount, stats[id]["colonthreecurrency"])
+        embed.color = PINK
+        await ctx.respond(embed=embed)
+      else:
+        write_losses(amount)
+        embed.description = sprintf("you lost your %$:3, you now have %$:3", amount, stats[id]["colonthreecurrency"])
+        await ctx.respond(embed=embed)
+      stats[id]["next_coinflip"] = int(time() + COINFLIP_COOLDOWN)
+      write_stats(stats)
     else:
-      write_losses(amount)
-      embed.description = sprintf("you lost your %$:3, you now have %$:3", amount, stats[id]["colonthreecurrency"])
+      embed.description = sprintf("you can do this again <t:%:R>", stats[id]["next_coinflip"])
       await ctx.respond(embed=embed)
-    stats[id]["next_coinflip"] = int(time() + COINFLIP_COOLDOWN)
-    write_stats(stats)
-  else:
-    embed.description = sprintf("you can do this again <t:%:R>", stats[id]["next_coinflip"])
-    await ctx.respond(embed=embed)
 
 
 @bot.slash_command(name="shop", description="interact with the shop")
@@ -959,74 +973,76 @@ async def coinflip(ctx: discord.ApplicationContext, amount: int, choice: str):
   ],
   required=True
 )
-async def shop(ctx: discord.ApplicationContext, subcmd: str, arg: str|None = None):
+async def shop(ctx: discord.ApplicationContext, subcmd: str, item_name: str|None = None, amount: int = 1):
   printf("% used command shop\n", ctx.author.global_name)
   shop: dict = load_shop()
-  stats: dict = get_stats()
-  user_id: str = str(ctx.author.id)
-  user_stats: dict = stats.get(user_id, None)
-  if not user_stats:
-    stats[user_id] = create_stats()
-    user_stats = stats[user_id]
-    write_stats(stats)
-  user_inventory: dict = user_stats["inventory"]
-  if subcmd == "list":
-    embed: discord.Embed = discord.Embed(title="Shop: List", color=PINK)
-    embed.description = sprintf("**__You have: %$:3__**\n", stats[user_id]["colonthreecurrency"])
-    for i in shop.keys():
-      if i in user_inventory.keys():
-        embed.description += sprintf("- % - % : *%*$:3 - [% OWNED]\n", i, shop[i]["description"], shop[i]["price"], user_inventory[i]["amount"])
-      else:
-        embed.description += sprintf("- % - % : *%*$:3\n", i, shop[i]["description"], shop[i]["price"])
-    await ctx.respond(embed=embed)
-    return 
-  elif subcmd == "buy":
-    embed: discord.Embed = discord.Embed(title="Shop: Buy", color=RED)
-    if not arg:
-      embed.description = "You forgot to say what you want to buy, use the List subcommand to find what exists :3"
+  async with stat_lock:
+    stats: dict = get_stats()
+    user_id: str = str(ctx.author.id)
+    user_stats: dict = stats.get(user_id, None)
+    if not user_stats:
+      stats[user_id] = create_stats()
+      user_stats = stats[user_id]
+      write_stats(stats)
+    user_inventory: dict = user_stats["inventory"]
+    if subcmd == "list":
+      embed: discord.Embed = discord.Embed(title="Shop: List", color=PINK)
+      embed.description = sprintf("**__You have: %$:3__**\n", stats[user_id]["colonthreecurrency"])
+      for i in shop.keys():
+        if i in user_inventory.keys():
+          embed.description += sprintf("- % - % : *%*$:3 - [% OWNED]\n", i, shop[i]["description"], shop[i]["price"], user_inventory[i]["amount"])
+        else:
+          embed.description += sprintf("- % - % : *%*$:3\n", i, shop[i]["description"], shop[i]["price"])
       await ctx.respond(embed=embed)
-      return
-    if arg not in shop.keys():
-      embed.description = sprintf("That item (%) doesn't exist in the shop!", arg)
+      return 
+    elif subcmd == "buy":
+      embed: discord.Embed = discord.Embed(title="Shop: Buy", color=RED)
+      if not item_name:
+        embed.description = "You forgot to say what you want to buy, use the List subcommand to find what exists :3"
+        await ctx.respond(embed=embed)
+        return
+      if item_name not in shop.keys():
+        embed.description = sprintf("That item (%) doesn't exist in the shop!", item_name)
+        await ctx.respond(embed=embed)
+        return
+      item: dict = shop[item_name]
+      item_price: int = item["price"]
+      has_currency: int = stats[user_id]["colonthreecurrency"]
+      if has_currency < item_price * amount:
+        embed.description = sprintf("You cannot afford % `%`, it would cost %$:3 but you have %$:3", amount, item, item_price * amount, has_currency)
+        await ctx.respond(embed=embed)
+        return
+      if item_name not in stats[user_id]["inventory"].keys():
+        stats[user_id]["inventory"][item_name] = {"amount": 0}
+      stats[user_id]["inventory"][item_name]["amount"] += amount
+      stats[user_id]["colonthreecurrency"] -= item_price
+      embed.description = sprintf("You have successfully bought % `%` for %$:3!", amount, item_name, item_price * amount)
+      embed.color = PINK
+      write_stats(stats)
       await ctx.respond(embed=embed)
-      return
-    item: dict = shop[arg]
-    item_price: int = item["price"]
-    has_currency: int = stats[user_id]["colonthreecurrency"]
-    if has_currency < item_price:
-      embed.description = sprintf("You cannot afford `%`, it costs %$:3 but you have %$:3", arg, item_price, has_currency)
-      await ctx.respond(embed=embed)
-      return
-    if arg not in stats[user_id]["inventory"].keys():
-      stats[user_id]["inventory"][arg] = {"amount": 0}
-    stats[user_id]["inventory"][arg]["amount"] += 1
-    stats[user_id]["colonthreecurrency"] -= item_price
-    embed.description = sprintf("You have successfully bought `%` for %$:3!", arg, item_price)
-    embed.color = PINK
-    write_stats(stats)
-    await ctx.respond(embed=embed)
    
     
 @bot.slash_command(name="inv", description="view your inventory")
 async def inv(ctx: discord.ApplicationContext):
-  stats: dict = get_stats()
-  user_id: str = str(ctx.author.id)
-  user_stats: dict = stats.get(user_id, None)
-  embed: discord.Embed = discord.Embed(title="Inventory", color=RED)
-  if not user_stats:
-    stats[user_id] = create_stats()
-    user_stats = stats[user_id]
-    write_stats(stats)
-  embed.color = PINK
-  embed.description = ""
-  user_inventory: dict = user_stats["inventory"]
-  if len(user_inventory.keys()) == 0:
-    embed.description = "... empty ..."
+  async with stat_lock:
+    stats: dict = get_stats()
+    user_id: str = str(ctx.author.id)
+    user_stats: dict = stats.get(user_id, None)
+    embed: discord.Embed = discord.Embed(title="Inventory", color=RED)
+    if not user_stats:
+      stats[user_id] = create_stats()
+      user_stats = stats[user_id]
+      write_stats(stats)
+    embed.color = PINK
+    embed.description = ""
+    user_inventory: dict = user_stats["inventory"]
+    if len(user_inventory.keys()) == 0:
+      embed.description = "... empty ..."
+      await ctx.respond(embed=embed)
+      return
+    for i in user_inventory.keys():
+      embed.description += sprintf("- %: %\n", i, user_inventory[i]["amount"])
     await ctx.respond(embed=embed)
-    return
-  for i in user_inventory.keys():
-    embed.description += sprintf("- %: %\n", i, user_inventory[i]["amount"])
-  await ctx.respond(embed=embed)
    
 
 @bot.slash_command(name="losses", description="how much the entire server has lost to gambling")
@@ -1036,12 +1052,43 @@ async def losses(ctx: discord.ApplicationContext):
   embed.description = sprintf("The server has lost `%`$:3 to gambling... sad", losses["losses"])
   await ctx.respond(embed=embed)
 
+
 @bot.slash_command(name="gains", description="how much the entire server has gained from gambling")
 async def gains(ctx: discord.ApplicationContext):
   gains: dict = get_gains()
   embed: discord.Embed = discord.Embed(title="Total gains:", color=PINK)
   embed.description = sprintf("The server has gained `%`$:3 from gambling", gains["gains"])
   await ctx.respond(embed=embed)
+
+
+@bot.slash_command(name="donate", description="donate to the poor")
+async def donate(ctx: discord.ApplicationContext, member: discord.Member, amount: int):
+  printf("% used command donate to donate % to %\n", ctx.author.global_name, amount, member.global_name)
+  async with stat_lock:
+    stats: dict = get_stats()
+    uid: str = str(ctx.author.id)
+    toid: str = str(member.id)
+    embed: discord.Embed = discord.Embed(title="Donation failed", color=RED)
+    if amount < 0:
+      embed.description = "nuh uh bro"
+      await ctx.respond(embed=embed)
+      return
+    if uid != str(LENA):
+      if stats[uid]["colonthreecurrency"] < amount:
+        embed.description = "damn bro ur poor"
+        await ctx.respond(embed=embed)
+        return
+      if toid not in stats.keys():
+        embed.description = "member somehow doesnt have stats yet"
+        await ctx.respond(embed=embed)
+        return 
+      stats[uid]["colonthreecurrency"] -= abs(amount)
+    stats[toid]["colonthreecurrency"] += abs(amount)
+    write_stats(stats)
+    embed.title = "Donated"
+    embed.color = PINK
+    embed.description = sprintf("You have donated %$:3 to <@%>", amount, toid)
+    await ctx.respond(embed=embed)
 
 #</commands>
 #<execution>
