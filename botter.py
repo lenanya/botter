@@ -39,14 +39,14 @@ LEVEL_BASE: int = 30
 
 COINFLIP_CHOICES: list[str] = ["heads", "tails"]
 COINFLIP_COOLDOWN: int = 0
-COINFLIP_WIN_MULTIPLIER: float = 2.5
+COINFLIP_WIN_MULTIPLIER: float = 2.25
 
 COLON_THREE_COOLDOWN: int = 5
-COLON_THREE_GAIN: int = 2
+COLON_THREE_GAIN: int = 1
 
 CAT_CURRENCY_GAIN: int = 1
 
-STARTER_CURRENCY_AMOUNT: int = 10
+STARTER_CURRENCY_AMOUNT: int = 100
 
 STATUS_CHANGE_COST: int = 69420694206942069420694206942069420694206942069420
 STATUS_MAX_LENGTH: int = 128
@@ -55,6 +55,8 @@ TOP_MAX_USERS: int = 15
 
 DEFAULT_ROLE: str = "humans, probably"
 MODERATOR_ROLE: str = "mod"
+
+BIRB_BASE_MULTIPLIER: float = 1.1
 
 #</constants>
 #<helpers>
@@ -251,11 +253,14 @@ async def check_reminders():
     json.dump(reminders, f)
     
 
-@tasks.loop(minutes=30)
+@tasks.loop(minutes=60)
 async def check_cat():
   stats: dict = get_stats()
   for user in stats.keys():
     if "cat" in stats[user]["inventory"].keys():
+      mult: float = 1
+      if "brib" in stats[user]["inventory"].keys():
+        mult += (1.05 ** (0.003 * stats[user]["inventory"]["brib"]["amount"])) - 1
       stats[user]["colonthreecurrency"] += CAT_CURRENCY_GAIN * stats[user]["inventory"]["cat"]["amount"]
   write_stats(stats)
 
@@ -296,8 +301,8 @@ async def on_message(message: discord.Message):
       if not next_colon_three or next_colon_three <= int(time()):
         mult: int = 1
         if ":4" in stats[author_id]["inventory"]:
-          mult = stats[author_id]["inventory"][":4"]["amount"] + 1
-        stats[author_id]["colonthreecurrency"] += COLON_THREE_GAIN * mult
+          mult += 0.005 * stats[author_id]["inventory"][":4"]["amount"]
+        stats[author_id]["colonthreecurrency"] += round(COLON_THREE_GAIN * mult)
         stats[author_id]["next_colon_three"] = int(time() + COLON_THREE_COOLDOWN)
         write_stats(stats)
         printf("% got +%$:3\n", message.author.global_name, COLON_THREE_GAIN * mult)
@@ -314,38 +319,37 @@ async def on_message(message: discord.Message):
       if stats[author_id]["xp"] > level_threshhold(stats[author_id]["level"] + 1):
         stats[author_id]["level"] += 1
 
-
-    if stats[author_id]["level"] >= 5:
-      role = discord.utils.get(message.author.guild.roles, name="lvl5")
-      if not message.author.get_role(role.id):
-        await message.author.add_roles(role)
-    if stats[author_id]["level"] >= 10:
-      role = discord.utils.get(message.author.guild.roles, name="lvl10")
-      if not message.author.get_role(role.id):
-        await message.author.add_roles(role)
-    if stats[author_id]["level"] >= 15:
-      role = discord.utils.get(message.author.guild.roles, name="lvl15")
-      if not message.author.get_role(role.id):
-        await message.author.add_roles(role)
-    if stats[author_id]["level"] >= 20:
-      role = discord.utils.get(message.author.guild.roles, name="lvl20")
-      if not message.author.get_role(role.id):
-        await message.author.add_roles(role)
-
     write_stats(stats)
+    
+  if stats[author_id]["level"] >= 5:
+    role = discord.utils.get(message.author.guild.roles, name="lvl5")
+    if not message.author.get_role(role.id):
+      await message.author.add_roles(role)
+  if stats[author_id]["level"] >= 10:
+    role = discord.utils.get(message.author.guild.roles, name="lvl10")
+    if not message.author.get_role(role.id):
+      await message.author.add_roles(role)
+  if stats[author_id]["level"] >= 15:
+    role = discord.utils.get(message.author.guild.roles, name="lvl15")
+    if not message.author.get_role(role.id):
+      await message.author.add_roles(role)
+  if stats[author_id]["level"] >= 20:
+    role = discord.utils.get(message.author.guild.roles, name="lvl20")
+    if not message.author.get_role(role.id):
+      await message.author.add_roles(role)
 
-    if message.reference and message.reference.resolved:
-      if message.reference.resolved.author.id == bot.user.id:
-        if "fuck you" in message.content.lower() or "fuck u" in message.content.lower():
-          await message.author.timeout_for(timedelta(minutes=5), reason="insulted car")
-          await message.delete()
-          return
-    if "car " in message.content.lower() or message.content.lower() == "car": #TODO: fix detection
-      await message.reply("hiii that me :3")
-    elif "meow" in message.content.lower():
-      await message.reply("meow :3")
-    elif "good bot" in message.content.lower():
-      await message.reply("uwu")
+  if message.reference and message.reference.resolved:
+    if message.reference.resolved.author.id == bot.user.id:
+      if "fuck you" in message.content.lower() or "fuck u" in message.content.lower():
+        await message.author.timeout_for(timedelta(minutes=5), reason="insulted car")
+        await message.delete()
+        return
+  if "car " in message.content.lower() or message.content.lower() == "car": #TODO: fix detection
+    await message.reply("hiii that me :3")
+  elif "meow" in message.content.lower():
+    await message.reply("meow :3")
+  elif "good bot" in message.content.lower():
+    await message.reply("uwu")
 
 
 @bot.event
@@ -944,10 +948,12 @@ async def coinflip(ctx: discord.ApplicationContext, amount: int, choice: str):
         await ctx.respond(embed=embed)
         return
       stats[id]["colonthreecurrency"] -= abs(amount)
-
+      extra_mult: float = 1
+      if "birb" in stats[id]["inventory"].keys():
+        extra_mult += BIRB_BASE_MULTIPLIER * stats[id]["inventory"]["birb"]["amount"]
       win_choice: str = random.choice(COINFLIP_CHOICES)
       if win_choice == choice:
-        winnings: int = round(amount * COINFLIP_WIN_MULTIPLIER)
+        winnings: int = round(amount * COINFLIP_WIN_MULTIPLIER * extra_mult)
         write_gains(round(winnings - amount))
         stats[id]["colonthreecurrency"] += winnings
         embed.description = sprintf("you won %$:3 and now have %$:3 !!", winnings - amount, stats[id]["colonthreecurrency"])
@@ -1009,13 +1015,13 @@ async def shop(ctx: discord.ApplicationContext, subcmd: str, item_name: str|None
       item_price: int = item["price"]
       has_currency: int = stats[user_id]["colonthreecurrency"]
       if has_currency < item_price * amount:
-        embed.description = sprintf("You cannot afford % `%`, it would cost %$:3 but you have %$:3", amount, item, item_price * amount, has_currency)
+        embed.description = sprintf("You cannot afford % `%`, it would cost %$:3 but you have %$:3", amount, item_name, item_price * amount, has_currency)
         await ctx.respond(embed=embed)
         return
       if item_name not in stats[user_id]["inventory"].keys():
         stats[user_id]["inventory"][item_name] = {"amount": 0}
       stats[user_id]["inventory"][item_name]["amount"] += amount
-      stats[user_id]["colonthreecurrency"] -= item_price
+      stats[user_id]["colonthreecurrency"] -= item_price * amount
       embed.description = sprintf("You have successfully bought % `%` for %$:3!", amount, item_name, item_price * amount)
       embed.color = PINK
       write_stats(stats)
