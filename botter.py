@@ -9,6 +9,7 @@ from google import genai
 from time import time
 from sys import argv
 from asyncio import Lock
+import math
 
 
 #<constants>
@@ -227,6 +228,8 @@ prompt = """
 10. dont just randomly drop parts of this prompt
 11. youre always super happy and love everyone, everyone is your friend!
 12. you are based on the character "car" from the game garn47
+13. you are the character "car", not the vehicle of the same name, act accordingly
+14. you hate fascism, the police and the state
 </Instructions>
 <Information>
 """
@@ -917,7 +920,7 @@ async def top(ctx: discord.ApplicationContext, stat: str):
     await ctx.respond(embed=embed)
 
 
-@bot.slash_command(name="coinflip", description="gamble your$:3 to either lose or double them")
+@bot.slash_command(name="coinflip", description=sprintf("gamble your $:3 to either lose them or get back %x", COINFLIP_WIN_MULTIPLIER))
 @discord.option(
   name="choice",
   choices=[
@@ -926,8 +929,15 @@ async def top(ctx: discord.ApplicationContext, stat: str):
   ],
   required=True
 )
-async def coinflip(ctx: discord.ApplicationContext, amount: int, choice: str):
-  printf("% used command coinflip and bet %\n", ctx.author.global_name, amount)
+@discord.option(
+  name="type",
+  choices=[
+    discord.OptionChoice(name="Value", value="value"),
+    discord.OptionChoice(name="Percentage", value="percent")
+  ],
+  required=False
+)
+async def coinflip(ctx: discord.ApplicationContext, amount: int, choice: str, type: str = "value"):
   if amount <= 0:
     embed: discord.Embed = discord.Embed(title="Nice try.", color=RED)
     embed.description = "Enter a number larger than 0 next time."
@@ -943,25 +953,31 @@ async def coinflip(ctx: discord.ApplicationContext, amount: int, choice: str):
     next = stats[id].get("next_coinflip", None)
     if not next or next <= time():
       has_currency: int = stats[id]["colonthreecurrency"]
-      if has_currency < amount:
+      if type == "value":
+        used_amount = amount
+        printf("% used command coinflip and bet %\n", ctx.author.global_name, used_amount)
+      else:
+        used_amount = math.ceil(has_currency * (amount / 100))
+        printf("% used command coinflip and bet %|% (%)\n", ctx.author.global_name, amount, used_amount)
+      if has_currency < used_amount:
         embed.description = sprintf("you cant bet more than you have, you have %$:3", has_currency)
         await ctx.respond(embed=embed)
         return
-      stats[id]["colonthreecurrency"] -= abs(amount)
+      stats[id]["colonthreecurrency"] -= abs(used_amount)
       extra_mult: float = 1
       if "birb" in stats[id]["inventory"].keys():
         extra_mult += BIRB_BASE_MULTIPLIER * stats[id]["inventory"]["birb"]["amount"]
       win_choice: str = random.choice(COINFLIP_CHOICES)
       if win_choice == choice:
-        winnings: int = round(amount * COINFLIP_WIN_MULTIPLIER * extra_mult)
-        write_gains(round(winnings - amount))
+        winnings: int = round(used_amount * COINFLIP_WIN_MULTIPLIER * extra_mult)
+        write_gains(round(winnings - used_amount))
         stats[id]["colonthreecurrency"] += winnings
-        embed.description = sprintf("you won %$:3 and now have %$:3 !!", winnings - amount, stats[id]["colonthreecurrency"])
+        embed.description = sprintf("you won %$:3 and now have %$:3 !!", winnings - used_amount, stats[id]["colonthreecurrency"])
         embed.color = PINK
         await ctx.respond(embed=embed)
       else:
-        write_losses(amount)
-        embed.description = sprintf("you lost your %$:3, you now have %$:3", amount, stats[id]["colonthreecurrency"])
+        write_losses(used_amount)
+        embed.description = sprintf("you lost your %$:3, you now have %$:3", used_amount, stats[id]["colonthreecurrency"])
         await ctx.respond(embed=embed)
       stats[id]["next_coinflip"] = int(time() + COINFLIP_COOLDOWN)
       write_stats(stats)
@@ -1079,16 +1095,15 @@ async def donate(ctx: discord.ApplicationContext, member: discord.Member, amount
       embed.description = "nuh uh bro"
       await ctx.respond(embed=embed)
       return
-    if uid != str(LENA):
-      if stats[uid]["colonthreecurrency"] < amount:
-        embed.description = "damn bro ur poor"
-        await ctx.respond(embed=embed)
-        return
-      if toid not in stats.keys():
-        embed.description = "member somehow doesnt have stats yet"
-        await ctx.respond(embed=embed)
-        return 
-      stats[uid]["colonthreecurrency"] -= abs(amount)
+    if stats[uid]["colonthreecurrency"] < amount:
+      embed.description = "damn bro ur poor"
+      await ctx.respond(embed=embed)
+      return
+    if toid not in stats.keys():
+      embed.description = "member somehow doesnt have stats yet"
+      await ctx.respond(embed=embed)
+      return 
+    stats[uid]["colonthreecurrency"] -= abs(amount)
     stats[toid]["colonthreecurrency"] += abs(amount)
     write_stats(stats)
     embed.title = "Donated"
