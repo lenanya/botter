@@ -11,6 +11,7 @@ from sys import argv
 from asyncio import Lock
 import math
 from decimal import Decimal, getcontext
+import secrets 
 
 
 #<constants>
@@ -39,8 +40,7 @@ LEVEL_BASE_MULT: int = 5
 LEVEL_SECOND_MULT: int = 50
 LEVEL_BASE: int = 30
 
-COINFLIP_CHOICES: list[str] = ["heads", "tails"]
-COINFLIP_COOLDOWN: int = 0
+COINFLIP_COOLDOWN: int = 5
 COINFLIP_WIN_MULTIPLIER: Decimal = Decimal(3)
 
 COLON_THREE_COOLDOWN: int = 5
@@ -117,7 +117,7 @@ def printf(fmt: str, *vaargs):
 
 
 def scientific_notation(n: int) -> str:
-  if n > 999_999_999_999:
+  if n > 999_999_999:
     return "{:.{}e}".format(Decimal(n), 2).replace("+", "")
   else:
     return "{:,}".format(n)
@@ -869,7 +869,7 @@ async def stats(ctx: discord.ApplicationContext, member: discord.Member | None =
       write_stats(stats)
     wins: int = stats[id].get("coinflip_wins", 0)
     losses: int = stats[id].get("coinflip_losses", 0)
-    won: float = (wins / (wins + losses)) * 100 if wins + losses > 0 else 100
+    won: float = round((wins / (wins + losses)) * 100, 2) if wins + losses > 0 else 100
     embed: discord.Embed = discord.Embed(title=sprintf("Stats of %", name), color=PINK)
     embed.description = sprintf(
       """
@@ -880,16 +880,16 @@ async def stats(ctx: discord.ApplicationContext, member: discord.Member | None =
       $:3: `%`
       Coinflip wins: `%`
       Coinflip losses: `%`
-      Coinflips won: `%`|%
+      Coinflips won: `%|%`
       """,
-      stats[id]["level"],
-      stats[id]["xp"],
-      level_threshhold(stats[id]["level"] + 1),
-      stats[id]["time_muted"],
-      stats[id]["message_count"],
-      stats[id]["colonthreecurrency"],
-      wins,
-      losses,
+      scientific_notation(stats[id]["level"]),
+      scientific_notation(stats[id]["xp"]),
+      scientific_notation(level_threshhold(stats[id]["level"] + 1)),
+      scientific_notation(stats[id]["time_muted"]),
+      scientific_notation(stats[id]["message_count"]),
+      scientific_notation(stats[id]["colonthreecurrency"]),
+      scientific_notation(wins),
+      scientific_notation(losses),
       won
     )
     await ctx.respond(embed=embed)
@@ -986,7 +986,12 @@ async def coinflip(ctx: discord.ApplicationContext, amount: int, choice: str, ty
       extra_mult: Decimal = Decimal(1)
       #if "birb" in stats[id]["inventory"].keys():
       #  extra_mult += Decimal(BIRB_BASE_MULTIPLIER) * Decimal(stats[id]["inventory"]["birb"]["amount"])
-      win_choice: str = random.choice(COINFLIP_CHOICES)
+      win_choice: str = ""
+      num: int = secrets.SystemRandom().randint(1, 2 << 31)
+      if num % 2 == 0:
+        win_choice = "heads"
+      else:
+        win_choice = "tails"
       if win_choice == choice:
         winnings: int = round(Decimal(used_amount) * COINFLIP_WIN_MULTIPLIER * extra_mult)
         write_gains(round(winnings - used_amount))
@@ -995,7 +1000,7 @@ async def coinflip(ctx: discord.ApplicationContext, amount: int, choice: str, ty
           stats[id]["coinflip_wins"] = 1
         else:
           stats[id]["coinflip_wins"] += 1
-        embed.description = sprintf("you won %$:3 and now have %$:3 !!", scientific_notation(winnings - used_amount), scientific_notation(stats[id]["colonthreecurrency"]))
+        embed.description = sprintf("you bet `%`$:3 and won `%`$:3 and now have `%`$:3 !!", scientific_notation(used_amount), scientific_notation(winnings - used_amount), scientific_notation(stats[id]["colonthreecurrency"]))
         embed.color = PINK
         await ctx.respond(embed=embed)
       else:
@@ -1004,7 +1009,7 @@ async def coinflip(ctx: discord.ApplicationContext, amount: int, choice: str, ty
         else:
           stats[id]["coinflip_losses"] += 1
         write_losses(used_amount)
-        embed.description = sprintf("you lost your %$:3, you now have %$:3", scientific_notation(used_amount), scientific_notation(stats[id]["colonthreecurrency"]))
+        embed.description = sprintf("you lost your `%`$:3, you now have `%`$:3", scientific_notation(used_amount), scientific_notation(stats[id]["colonthreecurrency"]))
         await ctx.respond(embed=embed)
       stats[id]["next_coinflip"] = int(time() + COINFLIP_COOLDOWN)
       write_stats(stats)
@@ -1036,12 +1041,12 @@ async def shop(ctx: discord.ApplicationContext, subcmd: str, item_name: str|None
     user_inventory: dict = user_stats["inventory"]
     if subcmd == "list":
       embed: discord.Embed = discord.Embed(title="Shop: List", color=PINK)
-      embed.description = sprintf("**__You have: %$:3__**\n", scientific_notation(stats[user_id]["colonthreecurrency"]))
+      embed.description = sprintf("**__You have: `%`$:3__**\n", scientific_notation(stats[user_id]["colonthreecurrency"]))
       for i in shop.keys():
         if i in user_inventory.keys():
-          embed.description += sprintf("- % - % : *%*$:3 - [% OWNED]\n", i, shop[i]["description"], scientific_notation(shop[i]["price"]), scientific_notation(user_inventory[i]["amount"]))
+          embed.description += sprintf("- % - % : *`%`*$:3 - [% OWNED]\n", i, shop[i]["description"], scientific_notation(shop[i]["price"]), scientific_notation(user_inventory[i]["amount"]))
         else:
-          embed.description += sprintf("- % - % : *%*$:3\n", i, shop[i]["description"], scientific_notation(shop[i]["price"]))
+          embed.description += sprintf("- % - % : *`%`*$:3\n", i, shop[i]["description"], scientific_notation(shop[i]["price"]))
       await ctx.respond(embed=embed)
       return 
     elif subcmd == "buy":
@@ -1051,21 +1056,21 @@ async def shop(ctx: discord.ApplicationContext, subcmd: str, item_name: str|None
         await ctx.respond(embed=embed)
         return
       if item_name not in shop.keys():
-        embed.description = sprintf("That item (%) doesn't exist in the shop!", item_name)
+        embed.description = sprintf("That item (`%`) doesn't exist in the shop!", item_name)
         await ctx.respond(embed=embed)
         return
       item: dict = shop[item_name]
       item_price: int = item["price"]
       has_currency: int = stats[user_id]["colonthreecurrency"]
       if has_currency < item_price * amount:
-        embed.description = sprintf("You cannot afford % `%`, it would cost %$:3 but you have %$:3", scientific_notation(amount), item_name, scientific_notation(item_price * amount), scientific_notation(has_currency))
+        embed.description = sprintf("You cannot afford % `%`, it would cost `%`$:3 but you have `%`$:3", scientific_notation(amount), item_name, scientific_notation(item_price * amount), scientific_notation(has_currency))
         await ctx.respond(embed=embed)
         return
       if item_name not in stats[user_id]["inventory"].keys():
         stats[user_id]["inventory"][item_name] = {"amount": 0}
       stats[user_id]["inventory"][item_name]["amount"] += amount
       stats[user_id]["colonthreecurrency"] -= item_price * amount
-      embed.description = sprintf("You have successfully bought % `%` for %$:3!", scientific_notation(amount), item_name, scientific_notation(item_price * amount))
+      embed.description = sprintf("You have successfully bought % `%` for `%`$:3!", scientific_notation(amount), item_name, scientific_notation(item_price * amount))
       embed.color = PINK
       write_stats(stats)
       await ctx.respond(embed=embed)
@@ -1096,7 +1101,7 @@ async def inv(ctx: discord.ApplicationContext, member: discord.Member|None = Non
       await ctx.respond(embed=embed)
       return
     for i in user_inventory.keys():
-      embed.description += sprintf("- %: %\n", i, scientific_notation(user_inventory[i]["amount"]))
+      embed.description += sprintf("- `%`: %\n", i, scientific_notation(user_inventory[i]["amount"]))
     await ctx.respond(embed=embed)
    
 
@@ -1141,7 +1146,7 @@ async def donate(ctx: discord.ApplicationContext, member: discord.Member, amount
     write_stats(stats)
     embed.title = "Donated"
     embed.color = PINK
-    embed.description = sprintf("You have donated %$:3 to <@%>", scientific_notation(amount), toid)
+    embed.description = sprintf("You have donated `%`$:3 to <@%>", scientific_notation(amount), toid)
     await ctx.respond(embed=embed)
 
 @bot.slash_command(name="convert", description="convert between units")
