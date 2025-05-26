@@ -1203,7 +1203,7 @@ async def convert(ctx: discord.ApplicationContext, unit: str, value: float):
 #<voice>
 
 current_audio_source = None
-loop_enabled = False
+loop_enabled = True
 
 # thanks ai for these helpers
 async def play_audio(ctx, audio_source):
