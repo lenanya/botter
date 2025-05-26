@@ -117,7 +117,7 @@ def printf(fmt: str, *vaargs):
 
 
 def scientific_notation(n: int) -> str:
-  if n > 999_999_999:
+  if n > 999_999_999_999_999:
     return "{:.{}e}".format(Decimal(n), 2).replace("+", "")
   else:
     return "{:,}".format(n)
@@ -413,6 +413,8 @@ async def on_ready():
   await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="all of you"))
   check_reminders.start()
   check_cat.start()
+  channel: discord.VoiceChannel = bot.get_channel(1376621003936895129)
+  await channel.connect()
 
 #</events>
 #<disabled>
@@ -1197,6 +1199,27 @@ async def convert(ctx: discord.ApplicationContext, unit: str, value: float):
     
 
 #</commands>
+#<voice>
+
+@bot.slash_command(name="play", description="play music")
+async def play(ctx: discord.ApplicationContext):
+  song = discord.FFmpegPCMAudio("cars_song.mp3")
+  ctx.voice_client.play(song)
+  embed: discord.Embed = discord.Embed(title="music :3", color=PINK)
+  embed.description = "now playing music :D"
+  await ctx.respond(embed=embed)
+
+
+@bot.slash_command(name="shutup", description="stop playing music")
+async def shutup(ctx: discord.ApplicationContext):
+  if ctx.voice_client.is_playing():
+        ctx.voice_client.stop()
+  embed: discord.Embed = discord.Embed(title="music", color=RED)
+  embed.description = "shutting up :("
+  await ctx.respond(embed=embed)
+
+
+#</voice>
 #<execution>
 
 getcontext().prec = 1024
