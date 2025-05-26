@@ -1219,12 +1219,10 @@ async def play_audio(ctx, audio_source):
 
 async def replay_audio(ctx, error):
   global loop_enabled, current_audio_source
-  printf("looping\n")
   if error:
     print(f"Player error: {error}")
   if ctx.voice_client and ctx.voice_client.is_connected() and loop_enabled:
     if isinstance(current_audio_source, discord.FFmpegPCMAudio):
-      printf("help\n")
       new_source = discord.FFmpegPCMAudio("cars_song.mp3")
       await play_audio(ctx, new_source)
 
