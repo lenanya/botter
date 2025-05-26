@@ -485,7 +485,7 @@ async def gambling(ctx: discord.ApplicationContext):
     await ctx.respond(embed=embed)
 
 
-#@bot.slash_command(name="stupid", description="shows how many times uve muted urrself")
+@bot.slash_command(name="stupid", description="shows how many times uve muted urrself")
 async def stupid(ctx: discord.ApplicationContext):
   printf("% used command stupid\n", ctx.author.global_name)
   id: str = str(ctx.author.id)
@@ -582,14 +582,14 @@ async def ping(ctx: discord.ApplicationContext): #TODO: wording
   await ctx.respond(embed=embed)
 
 
-#@bot.slash_command(name="am_i_gay" ,description="tells you if you are gay")
+@bot.slash_command(name="am_i_gay" ,description="tells you if you are gay")
 async def am_i_gay(ctx: discord.ApplicationContext):
   printf("% used command am_i_gay\n", ctx.author.global_name)
   embed: discord.Embed = discord.Embed(title="yes", color=PINK)
   await ctx.respond(embed=embed)
   
   
-#@bot.slash_command(name="are_you_gay" ,description="tells you if the bot is gay")
+@bot.slash_command(name="are_you_gay" ,description="tells you if the bot is gay")
 async def are_you_gay(ctx: discord.ApplicationContext):
   printf("% used command are_you_gay\n", ctx.author.global_name)
   embed: discord.Embed = discord.Embed(title="maybe", color=PINK)
@@ -785,7 +785,7 @@ async def bot_status(ctx: discord.ApplicationContext, text: str):
 @bot.slash_command(name="song" ,description="happiness")
 async def song(ctx: discord.ApplicationContext):
   printf("% used command song\n", ctx.author.global_name)
-  await ctx.send("https://www.youtube.com/watch?v=atdO6YRg5Cw")
+  await ctx.respond("https://www.youtube.com/watch?v=atdO6YRg5Cw")
 
 
 @bot.slash_command(name="ai" ,description="talk to botter")
