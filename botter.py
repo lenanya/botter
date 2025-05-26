@@ -8,6 +8,7 @@ import random
 from google import genai
 from time import time
 from sys import argv
+import asyncio
 from asyncio import Lock
 import math
 from decimal import Decimal, getcontext
@@ -1201,14 +1202,48 @@ async def convert(ctx: discord.ApplicationContext, unit: str, value: float):
 #</commands>
 #<voice>
 
+current_audio_source = None
+loop_enabled = False
+
+# thanks ai for these helpers
+async def play_audio(ctx, audio_source):
+  printf("playing audio\n")
+  global current_audio_source, loop_enabled
+  current_audio_source = audio_source
+  ctx.voice_client.play(
+    audio_source,
+    after=lambda e: asyncio.run_coroutine_threadsafe(
+      replay_audio(ctx, e), bot.loop
+    ) if loop_enabled else None  
+  )
+
+async def replay_audio(ctx, error):
+  global loop_enabled, current_audio_source
+  printf("looping\n")
+  if error:
+    print(f"Player error: {error}")
+  if ctx.voice_client and ctx.voice_client.is_connected() and loop_enabled:
+    if isinstance(current_audio_source, discord.FFmpegPCMAudio):
+      printf("help\n")
+      new_source = discord.FFmpegPCMAudio("cars_song.mp3")
+      await play_audio(ctx, new_source)
+
+
 @bot.slash_command(name="play", description="play music")
 async def play(ctx: discord.ApplicationContext):
   song = discord.FFmpegPCMAudio("cars_song.mp3")
-  ctx.voice_client.play(song)
+  await play_audio(ctx, song)
   embed: discord.Embed = discord.Embed(title="music :3", color=PINK)
   embed.description = "now playing music :D"
   await ctx.respond(embed=embed)
 
+
+@bot.slash_command(name="loop", description="make song loop or not")
+async def loop(ctx, loop: bool = True):
+  global loop_enabled
+  if ctx.voice_client:
+    loop_enabled = loop
+    await ctx.respond(f"looping is now {'on' if loop_enabled else 'off'}.")
 
 @bot.slash_command(name="shutup", description="stop playing music")
 async def shutup(ctx: discord.ApplicationContext):
