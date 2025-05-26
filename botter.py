@@ -1207,7 +1207,6 @@ loop_enabled = True
 
 # thanks ai for these helpers
 async def play_audio(ctx, audio_source):
-  printf("playing audio\n")
   global current_audio_source, loop_enabled
   current_audio_source = audio_source
   ctx.voice_client.play(
